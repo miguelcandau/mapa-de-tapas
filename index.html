@@ -827,6 +827,12 @@ a.chip{text-decoration:none;color:var(--ink);display:inline-block}
 .authtabs{margin-bottom:14px}
 .okmsg{color:var(--ink);font-weight:500;font-size:14.5px;margin:0 0 8px;padding:10px 12px;border:1px solid var(--accent);border-radius:12px;background:var(--surface)}
 .field input[type=email],.field input[type=password]{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px}
+.newbar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;width:100%}
+.newbar .btn.primary{padding:11px 20px;font-size:16px}
+.ucard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.ucard h3{margin:0;font-size:16px;font-weight:600;overflow-wrap:anywhere}
+.ucard .line{color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.ucard .line b{color:var(--ink);font-variant-numeric:tabular-nums}
 .check{display:flex;align-items:center;gap:8px;font-size:15px}
 .check input{width:18px;height:18px;accent-color:var(--accent)}
 .me{display:block;width:18px;height:18px;border-radius:50%;background:var(--ink);border:3px solid var(--surface);box-shadow:0 0 0 6px color-mix(in srgb,var(--ink) 20%,transparent)}
@@ -848,7 +854,7 @@ a.chip{text-decoration:none;color:var(--ink);display:inline-block}
     </nav>
     <button class="btn" id="shareBtn" type="button">Compartir</button>
     <button class="btn" id="accountBtn" type="button">Entrar</button>
-    <button class="btn primary" id="addBtn" type="button" hidden>Añadir sitio</button>
+    <button class="btn primary" id="addBtn" type="button" hidden>+ Crear nuevo sitio</button>
   </header>
     <p class="notice" id="notice" hidden></p>
   <div class="listbar" id="listbar"></div>
@@ -909,7 +915,7 @@ a.chip{text-decoration:none;color:var(--ink);display:inline-block}
       <div class="field"><span class="lab">Estado</span>
         <div class="seg" id="inEstado"><button type="button" data-estado="fui">Ya he ido</button><button type="button" data-estado="pendiente">Pendiente</button></div></div>
     </div>
-    <div class="field" id="listaField"><label for="inLista">Lista</label><select id="inLista"></select></div>
+    <div class="field" id="listaField" hidden><label for="inLista">Lista</label><select id="inLista"></select></div>
     <div class="field"><label for="inDir">Dirección (opcional)</label><input type="text" id="inDir" autocomplete="off" maxlength="120" placeholder="Calle de Colón, 13"></div>
     <div class="field"><span class="lab">Ubicación en el mapa</span>
       <div class="locbox">
@@ -950,7 +956,7 @@ a.chip{text-decoration:none;color:var(--ink);display:inline-block}
     <div class="field" id="fNombre"><label for="auNombre">Tu nombre</label><input type="text" id="auNombre" maxlength="60" autocomplete="name" placeholder="Como quieres que te vean en tus listas"></div>
     <div class="field" id="fEmail"><label for="auEmail">Correo</label><input type="email" id="auEmail" autocomplete="email" inputmode="email" placeholder="tu@correo.com"></div>
     <div class="field" id="fPass"><label for="auPass" id="auPassLab">Contraseña</label><input type="password" id="auPass" autocomplete="current-password" minlength="8"><span class="hint" id="auPassHint" style="font-size:13px;color:var(--muted)"></span></div>
-    <div id="cuentaBox" hidden><p class="line" id="cuentaTxt" style="margin:0 0 14px"></p></div>
+    <div id="cuentaBox" hidden><p class="line" id="cuentaTxt" style="margin:0 0 14px"></p><button class="btn" type="button" id="adminBtn" hidden style="margin-bottom:14px">Panel de usuarios</button></div>
     <p class="err" id="authErr" role="alert"></p>
     <div class="formacts">
       <button class="linkbtn" type="button" id="authAlt"></button>
@@ -962,22 +968,30 @@ a.chip{text-decoration:none;color:var(--ink);display:inline-block}
 <div class="sheet" id="listSheet" hidden>
   <form class="panel" id="listForm" novalidate role="dialog" aria-modal="true" aria-labelledby="listTitle">
     <h2 id="listTitle">Nueva lista</h2>
-    <div class="field"><label for="liNombre">Nombre de la lista</label><input type="text" id="liNombre" maxlength="60" autocomplete="off" placeholder="Tapas de siempre"></div>
+    <div class="field" hidden><label for="liNombre">Nombre de la lista</label><input type="text" id="liNombre" maxlength="60" autocomplete="off" placeholder="Tapas de siempre"></div>
     <div class="field"><span class="lab">Quién puede verla</span>
       <div class="radios" id="liVis">
-        <label class="radio"><input type="radio" name="vis" value="privada"><div><b>Privada</b><span>Solo la ves tú.</span></div></label>
-        <label class="radio"><input type="radio" name="vis" value="enlace"><div><b>Con enlace</b><span>La ve quien tenga el enlace, sin necesidad de cuenta.</span></div></label>
-        <label class="radio"><input type="radio" name="vis" value="publica"><div><b>Pública</b><span>Aparece en la web para cualquiera, con tu nombre.</span></div></label>
+        <label class="radio"><input type="radio" name="vis" value="privada"><div><b>Privados</b><span>Solo los ves tú.</span></div></label>
+        <label class="radio"><input type="radio" name="vis" value="enlace"><div><b>Con enlace</b><span>Los ve quien tenga el enlace, sin necesidad de cuenta.</span></div></label>
+        <label class="radio"><input type="radio" name="vis" value="publica"><div><b>Públicos</b><span>Aparecen en la web para cualquiera, con tu nombre.</span></div></label>
       </div>
     </div>
     <div class="field" id="liLinkField" hidden><label for="liLink">Enlace para compartir</label>
       <div class="linkrow"><input type="text" id="liLink" readonly><button class="btn small" type="button" id="liCopy">Copiar</button></div></div>
     <p class="err" id="listErr" role="alert"></p>
     <div class="formacts">
-      <button class="btn danger" type="button" id="liDel" hidden>Eliminar lista</button>
+      <button class="btn danger" type="button" id="liDel" hidden style="display:none">Eliminar lista</button>
       <div class="right"><button class="btn" type="button" id="liCancel">Cancelar</button><button class="btn primary" type="submit" id="liSave">Guardar</button></div>
     </div>
   </form>
+</div>
+<div class="sheet" id="adminSheet" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="adminTitle" style="max-width:760px">
+    <h2 id="adminTitle">Panel de usuarios</h2>
+    <p class="line" id="adminSum" style="margin:0 0 12px;color:var(--muted)"></p>
+    <div class="cards" id="adminList"></div>
+    <div class="formacts" style="margin-top:14px"><div class="right"><button class="btn" type="button" id="adminClose">Cerrar</button></div></div>
+  </div>
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
@@ -1066,7 +1080,7 @@ const VIS={privada:"privada",enlace:"con enlace",publica:"pública"};
 const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
 function places(){
   if(store.mode==="compartida")return app.shared?app.shared.sitios:[];
-  if(store.mode==="mio")return app.sel==="todas"?store.saved:store.saved.filter(p=>p.lista_id===app.sel);
+  if(store.mode==="mio")return store.saved;
   return app.muestra;
 }
 const showingExamples=()=>false;
@@ -1111,7 +1125,6 @@ async function loadPublicas(c){
   paintChrome();
 }
 async function ensureLista(ciudad){
-  const cur=listaSel();if(cur&&cur.ciudad===ciudad)return cur;
   const first=listasCiudad(ciudad)[0];if(first)return first;
   const r=await sb.from("listas").insert({ciudad,nombre:"Mis sitios de "+CITIES[ciudad].name}).select().single();
   if(r.error)throw r.error;app.listas.push(r.data);return r.data;
@@ -1139,7 +1152,7 @@ async function refresh(session){
       const ok=sb?await loadShared():false;
       if(!ok)notice("Esta lista no existe o su dueño la tiene como privada.");
     }
-    if(app.user)await loadMine();else{app.listas=[];store.saved=[];app.sel="todas";}
+    if(app.user){await loadMine();checkAdmin();}else{app.listas=[];store.saved=[];app.sel="todas";isAdmin=false;}
     if(app.shared){store.mode="compartida";if(app.shared.ciudad!==city){city=app.shared.ciudad;location.hash="#"+city;}}
     else if(app.user)store.mode="mio";
     else{await loadMuestra();store.mode="muestra";}
@@ -1170,20 +1183,19 @@ function paintChrome(){
   $("accountBtn").textContent=app.user?(app.nombre||"Mi cuenta"):"Entrar";
   $("accountBtn").hidden=!sb;
   if(m==="mio"){
-    const ls=listasCiudad(city),cur=listaSel();
-    const n=id=>store.saved.filter(p=>p.lista_id===id).length;
-    bar.innerHTML='<button type="button" class="chip" data-lista="todas" aria-pressed="'+(app.sel==="todas"||!cur||cur.ciudad!==city)+'">Todas mis listas</button>'+
-      ls.map(l=>'<button type="button" class="chip" data-lista="'+esc(l.id)+'" aria-pressed="'+(app.sel===l.id)+'">'+esc(l.nombre)+'<small>'+n(l.id)+" · "+VIS[l.visibilidad]+"</small></button>").join("")+
-      '<button type="button" class="linkbtn" id="newListBtn">+ Nueva lista</button>'+
-      (cur&&cur.ciudad===city?'<button type="button" class="linkbtn" id="editListBtn">Ajustes de la lista</button>':"");
+    const l=listasCiudad(city)[0],n=store.saved.filter(p=>p.ciudad===city).length;
+    const vis=!l||l.visibilidad==="privada"?"Solo los ves tú":(l.visibilidad==="enlace"?"Visibles para quien tenga tu enlace":"Públicos");
+    bar.innerHTML='<div class="newbar"><button type="button" class="btn primary" id="newPlaceBtn">+ Crear nuevo sitio</button>'+
+      '<span class="txt">Tus sitios de <b>'+esc(CITIES[city].name)+"</b>"+(n?": "+vis+".":". Empieza creando el primero.")+"</span>"+
+      (l&&n?'<button type="button" class="linkbtn" id="editListBtn">Cambiar quién los ve</button>':"")+"</div>";
   }else if(m==="compartida"&&app.shared){
-    bar.innerHTML='<span class="txt">Estás viendo <b>'+esc(app.shared.nombre)+"</b>"+(app.shared.autor?", una lista de <b>"+esc(app.shared.autor)+"</b>":"")+'. Es de solo lectura.</span><a class="btn small" href="'+esc(SITE)+'">'+(app.user?"Ir a mis listas":"Crear mi propia lista")+"</a>";
+    bar.innerHTML='<span class="txt">Estás viendo los sitios de <b>'+esc(app.shared.autor||"otra persona")+"</b> en "+esc(CITIES[app.shared.ciudad].name)+'. Es de solo lectura.</span><a class="btn small" href="'+esc(SITE)+'">'+(app.user?"Ir a mis sitios":"Crear mi cuenta")+"</a>";
   }else if(m==="muestra"){
-    bar.innerHTML='<span class="txt">Esta es una <b>lista de muestra</b>. Crea tu cuenta para guardar tus sitios, ordenarlos en listas por ciudad y compartirlas.</span>'+(sb?'<button type="button" class="btn small primary" id="ctaAlta">Crear cuenta</button>':"");
+    bar.innerHTML='<span class="txt">Estos son <b>sitios de muestra</b>. Crea tu cuenta para guardar los tuyos en Madrid y Sevilla y compartirlos.</span>'+(sb?'<button type="button" class="btn small primary" id="ctaAlta">Crear cuenta</button>':"");
   }else bar.innerHTML="";
   const pubs=(app.publicas[city]||[]).filter(x=>!app.user||x.owner!==app.user.id).filter(x=>!app.shared||x.id!==app.shared.id),pb=$("publicas");
   pb.hidden=!pubs.length||m==="loading";
-  if(pubs.length)pb.innerHTML='<span class="flabel" style="min-width:0">Listas públicas</span>'+pubs.map(x=>'<a class="chip" href="'+esc(SITE+"?l="+x.id+"#"+city)+'">'+esc(x.nombre)+(x.autor?"<small>de "+esc(x.autor)+"</small>":"")+"</a>").join("");
+  if(pubs.length)pb.innerHTML='<span class="flabel" style="min-width:0">Sitios de otras personas</span>'+pubs.map(x=>'<a class="chip" href="'+esc(SITE+"?l="+x.id+"#"+city)+'">'+esc(x.autor||"Sin nombre")+"</a>").join("");
 }
 function setReadOnly(){store.canWrite=false;$("addBtn").hidden=true;renderList();}
 function notice(t){const n=$("notice");n.textContent=t;n.hidden=!t;}
@@ -1372,11 +1384,10 @@ $("shareBtn").addEventListener("click",async()=>{
   let listId=null,nombre="Mapa de tapas";
   if(store.mode==="compartida"&&app.shared){listId=app.shared.id;nombre=app.shared.nombre;}
   else if(store.mode==="mio"){
-    let cur=listaSel();const ls=listasCiudad(city);
-    if((!cur||cur.ciudad!==city)&&ls.length===1){cur=ls[0];app.sel=cur.id;paintChrome();renderAll();}
-    if(!cur||cur.ciudad!==city){toast(ls.length?"Elige arriba cuál de tus listas quieres compartir.":"Todavía no tienes ninguna lista en "+CITIES[city].name+".");return;}
-    if(cur.visibilidad==="privada"){openList(cur,"Esta lista es privada. Para compartirla, cámbiala a «Con enlace» o «Pública» y guarda.");return;}
-    listId=cur.id;nombre=cur.nombre;
+    const cur=listasCiudad(city)[0];
+    if(!cur||!store.saved.some(p=>p.ciudad===city)){toast("Todavía no tienes sitios en "+CITIES[city].name+" para compartir.");return;}
+    if(cur.visibilidad==="privada"){openList(cur,"Ahora mismo solo los ves tú. Para compartirlos, elige «Con enlace» o «Públicos» y guarda.");return;}
+    listId=cur.id;nombre="Sitios de "+(app.nombre||"tapas")+" en "+CITIES[city].name;
   }
   const url=shareUrl(listId),zona=F.barrio?F.barrio+" ("+CITIES[city].name+")":CITIES[city].name;
   const data={title:nombre,text:nombre+": sitios de tapas en "+zona,url};
@@ -1388,7 +1399,7 @@ $("shareBtn").addEventListener("click",async()=>{
 let listDraft=null,liDelArmed=false;
 function openList(l,hint){
   listDraft=l?{id:l.id,nombre:l.nombre,ciudad:l.ciudad,visibilidad:l.visibilidad}:{id:null,nombre:"",ciudad:city,visibilidad:"privada"};
-  liDelArmed=false;$("listTitle").textContent=l?"Ajustes de la lista":"Nueva lista en "+CITIES[city].name;
+  liDelArmed=false;$("listTitle").textContent="Quién ve tus sitios de "+CITIES[listDraft.ciudad].name;
   $("liNombre").value=listDraft.nombre;$("listErr").textContent=hint||"";
   $("liVis").querySelectorAll("input").forEach(i=>{i.checked=i.value===listDraft.visibilidad;});
   $("liDel").hidden=!l;$("liDel").textContent="Eliminar lista";
@@ -1415,7 +1426,7 @@ $("listForm").addEventListener("submit",async e=>{
       const i=app.listas.findIndex(x=>x.id===r.data.id);if(i>=0)app.listas[i]=r.data;
       app.publicas={};loadPublicas(city);paintChrome();
       if(wasPrivate&&vis!=="privada"){listDraft.visibilidad=vis;paintListLink();$("listErr").textContent="";toast("Guardado. Ya puedes copiar el enlace.");}
-      else{$("listSheet").hidden=true;listDraft=null;toast("Lista guardada");}
+      else{$("listSheet").hidden=true;listDraft=null;toast("Guardado");}
     }else{
       const r=await sb.from("listas").insert({ciudad:listDraft.ciudad,nombre,visibilidad:vis}).select().single();if(r.error)throw r.error;
       app.listas.push(r.data);app.sel=r.data.id;app.publicas={};loadPublicas(city);
@@ -1436,12 +1447,31 @@ $("liDel").addEventListener("click",async()=>{
   finally{$("liDel").disabled=false;}
 });
 $("listbar").addEventListener("click",e=>{
-  const c=e.target.closest("[data-lista]");
-  if(c){app.sel=c.dataset.lista;F.barrio="";F.estilos.clear();paintChrome();renderAll(true);return;}
-  if(e.target.closest("#newListBtn")){openList(null);return;}
-  if(e.target.closest("#editListBtn")){const cur=listaSel();if(cur)openList(cur);return;}
+  if(e.target.closest("#newPlaceBtn")){openForm(null);return;}
+  if(e.target.closest("#editListBtn")){const cur=listasCiudad(city)[0];if(cur)openList(cur);return;}
   if(e.target.closest("#ctaAlta")){openAuth("alta");}
 });
+
+/* ---------- panel de usuarios ---------- */
+let isAdmin=false;
+async function checkAdmin(){isAdmin=false;if(!sb||!app.user)return;try{const r=await sb.rpc("es_admin");isAdmin=r.data===true;}catch(e){}}
+const fdate=v=>{if(!v)return "nunca";try{return new Date(v).toLocaleString("es-ES",{dateStyle:"medium",timeStyle:"short"});}catch(e){return String(v);}};
+async function openAdmin(){
+  closeAuth();$("adminSheet").hidden=false;$("adminSum").textContent="Cargando…";$("adminList").innerHTML="";
+  const r=await sb.rpc("admin_resumen");
+  if(r.error||!Array.isArray(r.data)){$("adminSum").textContent="No se ha podido cargar el panel.";return;}
+  const us=r.data,tot=us.reduce((a,u)=>a+(u.sitios||0),0);
+  $("adminSum").textContent=us.length+(us.length===1?" persona con cuenta":" personas con cuenta")+" · "+tot+(tot===1?" sitio guardado":" sitios guardados")+" en total.";
+  $("adminList").innerHTML=us.map(u=>{
+    const ls=(u.listas||[]).map(l=>esc(CITIES[l.ciudad]?CITIES[l.ciudad].name:l.ciudad)+" "+l.sitios+" ("+esc(VIS[l.visibilidad]||l.visibilidad)+")").join(" · ");
+    return '<article class="ucard"><h3>'+esc(u.nombre||"Sin nombre")+'</h3><div class="line">'+esc(u.email||"")+(u.confirmado?"":" · correo sin confirmar")+"</div>"+
+      '<div class="line">Alta: <b>'+esc(fdate(u.alta))+"</b> · Último acceso: <b>"+esc(fdate(u.ultimo_acceso))+"</b></div>"+
+      '<div class="line">Sitios: <b>'+(u.sitios||0)+"</b> ("+(u.visitados||0)+" visitados, "+(u.pendientes||0)+" pendientes)"+(u.ultimo_sitio?" · Último añadido: <b>"+esc(fdate(u.ultimo_sitio))+"</b>":"")+"</div>"+
+      (ls?'<div class="line">'+ls+"</div>":"")+"</article>";}).join("");
+}
+$("adminBtn").addEventListener("click",openAdmin);
+$("adminClose").addEventListener("click",()=>{$("adminSheet").hidden=true;});
+$("adminSheet").addEventListener("mousedown",e=>{if(e.target===$("adminSheet"))$("adminSheet").hidden=true;});
 
 /* ---------- cuenta ---------- */
 let authMode="entrar";
@@ -1456,7 +1486,7 @@ function openAuth(m){
   $("auPassLab").textContent=m==="nueva"?"Nueva contraseña":"Contraseña";
   $("auPassHint").textContent=m==="entrar"?"":"Mínimo 8 caracteres.";
   $("cuentaBox").hidden=m!=="cuenta";
-  if(m==="cuenta")$("cuentaTxt").textContent=(app.nombre?app.nombre+" · ":"")+(app.user?app.user.email:"");
+  if(m==="cuenta"){$("cuentaTxt").textContent=(app.nombre?app.nombre+" · ":"")+(app.user?app.user.email:"");$("adminBtn").hidden=!isAdmin;}
   $("authAlt").hidden=!(m==="entrar"||m==="olvido");
   $("authAlt").textContent=m==="entrar"?"He olvidado mi contraseña":"Volver a entrar";
   $("authSheet").hidden=false;
@@ -1524,7 +1554,7 @@ function saveFailed(e){
 /* ---------- ficha ---------- */
 let draft=null,delArmed=false;
 function openForm(p){
-  draft=p?Object.assign({},p,{estilos:p.estilos.slice()}):{id:null,nombre:"",ciudad:city,estado:"fui",direccion:"",barrio:"",estilos:[],precio:null,notas:"",lat:null,lng:null,aprox:false,tarde:false,cocina:false,creado:"",lista_id:(listaSel()&&listaSel().ciudad===city)?listaSel().id:null};
+  draft=p?Object.assign({},p,{estilos:p.estilos.slice()}):{id:null,nombre:"",ciudad:city,estado:"fui",direccion:"",barrio:"",estilos:[],precio:null,notas:"",lat:null,lng:null,aprox:false,tarde:false,cocina:false,creado:"",lista_id:null};
   delArmed=false;$("formErr").textContent="";$("locHint").textContent="";$("inCoords").value="";
   $("formTitle").textContent=draft.id?"Editar sitio":"Añadir sitio";
   $("inNombre").value=draft.nombre;$("inDir").value=draft.direccion;$("inPrecio").value=draft.precio==null?"":draft.precio;$("inNotas").value=draft.notas;$("inEstiloNuevo").value="";$("inTarde").checked=!!draft.tarde;$("inCocina").checked=!!draft.cocina;lastTried="";
@@ -1698,7 +1728,6 @@ $("form").addEventListener("submit",async e=>{
     const p=clean(draft,draft.id);
     await savePlace(p);
     if(p.ciudad!==city){location.hash="#"+p.ciudad;setCity(p.ciudad);}
-    if(app.sel!=="todas"&&app.sel!==p.lista_id){app.sel=p.lista_id;paintChrome();renderAll();}
     closeForm();toast(isNew?"Guardado: "+p.nombre:"Cambios guardados");
   }catch(err){saveFailed(err);$("formErr").textContent="No se ha guardado.";}
   finally{btn.disabled=false;}
