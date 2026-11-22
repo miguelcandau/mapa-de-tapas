@@ -1606,7 +1606,7 @@ $("inCoords").addEventListener("input",()=>{
   if(m&&setLocation(parseFloat(m[1]),parseFloat(m[2]),false)){$("locHint").textContent="Ubicación leída.";paintForm();}
   else $("locHint").textContent=m?"Esas coordenadas quedan fuera de Madrid y de Sevilla.":"No encuentro coordenadas en ese texto. Los enlaces cortos (maps.app.goo.gl) no las llevan.";
 });
-let locating=null,lastTried="",sampleOff=false;
+let locating=null,lastTried="",sampleOff=false,googleOff=false;
 const norm=t=>String(t||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
 function matchBarrio(c,t){const n=norm(t);if(!n)return "";const names=barrioNames(c);
   return names.find(x=>norm(x)===n)||names.find(x=>norm(x).split(" · ").includes(n))||names.find(x=>norm(x).includes(n)||n.includes(norm(x)))||"";}
@@ -1625,6 +1625,25 @@ function locate(auto){
     if(!r.ok)throw 0;const j=await r.json();return j&&j[0]?j[0]:null;};
   locating=(async()=>{
   try{
+    if(sb&&store.mode==="mio"&&!googleOff){
+      let g=null;
+      try{const r=await sb.functions.invoke("buscar-sitio",{body:{q:draft.nombre,direccion:draft.direccion,ciudad:draft.ciudad}});g=r&&r.data;}catch(e){g=null;}
+      if(draft!==mine)return;
+      if(g&&(g.motivo==="sin_clave"||g.motivo==="limite"))googleOff=true;
+      if(g&&g.ok&&isFinite(Number(g.lat))&&isFinite(Number(g.lng))){
+        readForm();
+        if(!(draft.lat!=null&&!draft.aprox))setLocation(Number(g.lat),Number(g.lng),false);
+        const done=["ubicación"+(draft.barrio?" ("+draft.barrio+")":"")];
+        if(g.nombre&&!draft.id){draft.nombre=String(g.nombre).slice(0,80);$("inNombre").value=draft.nombre;}
+        if(!draft.direccion&&g.direccion){draft.direccion=String(g.direccion).slice(0,120);$("inDir").value=draft.direccion;done.push("dirección");}
+        if(draft.precio==null&&g.precio!=null){draft.precio=Number(g.precio);$("inPrecio").value=draft.precio;done.push("precio orientativo");}
+        if(!draft.estilos.length&&Array.isArray(g.estilos)&&g.estilos.length){draft.estilos=g.estilos.slice(0,3).map(String);done.push("tipo de comida");}
+        if(g.tarde===true||g.tarde===false){draft.tarde=g.tarde;$("inTarde").checked=g.tarde;done.push(g.tarde?"abre a las 16:00":"cierra a mediodía");}
+        lastTried=draft.ciudad+"|"+draft.nombre+"|"+draft.direccion;
+        $("locHint").textContent="Encontrado en Google. Rellenado: "+done.join(", ")+". Revisa que sea el sitio correcto; «No cierra cocina» hay que marcarlo a mano.";
+        paintForm();return;
+      }
+    }
     let hit=null,porDireccion=false;
     if(draft.direccion){hit=await q(draft.direccion+", "+c.name);porDireccion=!!hit;}
     if(!hit)hit=await q(draft.nombre+", "+c.name);
