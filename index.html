@@ -856,7 +856,8 @@ a.chip{text-decoration:none;color:var(--ink);display:inline-block}
     </nav>
     <button class="btn" id="shareBtn" type="button">Compartir</button>
     <button class="btn" id="accountBtn" type="button">Entrar</button>
-    <button class="btn primary" id="addBtn" type="button" hidden>+ Crear nuevo sitio</button>
+    <button class="btn primary" id="adminHdr" type="button" hidden>Panel de usuarios</button>
+    <button class="btn primary" id="addBtn" type="button" hidden style="display:none">+ Crear nuevo sitio</button>
   </header>
     <p class="notice" id="notice" hidden></p>
   <div class="listbar" id="listbar"></div>
@@ -1176,7 +1177,7 @@ async function refresh(session){
       const ok=sb?await loadShared():false;
       if(!ok)notice("Esta lista no existe o su dueño la tiene como privada.");
     }
-    if(app.user){await loadMine();checkAdmin();}else{app.listas=[];store.saved=[];app.sel="todas";isAdmin=false;}
+    if(app.user){await loadMine();checkAdmin();}else{app.listas=[];store.saved=[];app.sel="todas";isAdmin=false;$("adminHdr").hidden=true;}
     if(app.shared){store.mode="compartida";if(app.shared.ciudad!==city){city=app.shared.ciudad;location.hash="#"+city;}}
     else if(app.user)store.mode="mio";
     else{await loadMuestra();store.mode="muestra";}
@@ -1497,7 +1498,7 @@ $("listbar").addEventListener("click",e=>{
 
 /* ---------- panel de usuarios ---------- */
 let isAdmin=false;
-async function checkAdmin(){isAdmin=false;if(!sb||!app.user)return;try{const r=await sb.rpc("es_admin");isAdmin=r.data===true;}catch(e){}}
+async function checkAdmin(){isAdmin=false;if(sb&&app.user){try{const r=await sb.rpc("es_admin");isAdmin=r.data===true;}catch(e){}}$("adminHdr").hidden=!isAdmin;}
 const fdate=v=>{if(!v)return "nunca";try{return new Date(v).toLocaleString("es-ES",{dateStyle:"medium",timeStyle:"short"});}catch(e){return String(v);}};
 async function openAdmin(){
   closeAuth();$("adminSheet").hidden=false;$("adminSum").textContent="Cargando…";$("adminList").innerHTML="";
@@ -1541,6 +1542,7 @@ $("adminList").addEventListener("click",async e=>{
   }
 });
 $("adminBtn").addEventListener("click",openAdmin);
+$("adminHdr").addEventListener("click",openAdmin);
 $("adminClose").addEventListener("click",()=>{$("adminSheet").hidden=true;});
 $("adminSheet").addEventListener("mousedown",e=>{if(e.target===$("adminSheet"))$("adminSheet").hidden=true;});
 
