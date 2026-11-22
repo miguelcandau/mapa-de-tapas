@@ -833,6 +833,8 @@ a.chip{text-decoration:none;color:var(--ink);display:inline-block}
 .ucard h3{margin:0;font-size:16px;font-weight:600;overflow-wrap:anywhere}
 .ucard .line{color:var(--muted);font-size:14px;overflow-wrap:anywhere}
 .ucard .line b{color:var(--ink);font-variant-numeric:tabular-nums}
+.listcol{min-width:0;display:flex;flex-direction:column;gap:14px}
+.sortbar{display:flex;align-items:center;gap:10px}
 .check{display:flex;align-items:center;gap:8px;font-size:15px}
 .check input{width:18px;height:18px;accent-color:var(--accent)}
 .me{display:block;width:18px;height:18px;border-radius:50%;background:var(--ink);border:3px solid var(--surface);box-shadow:0 0 0 6px color-mix(in srgb,var(--ink) 20%,transparent)}
@@ -899,7 +901,16 @@ a.chip{text-decoration:none;color:var(--ink);display:inline-block}
       <div id="map" role="application" aria-label="Mapa de sitios"></div>
       <div class="legend"><span><i class="dot fui"></i>✓ Ya he ido</span><span><i class="dot pend"></i>★ Pendiente</span><span id="mapnote"></span><button class="linkbtn" id="nearBtn" type="button">Ver mi ubicación</button></div>
     </div>
-    <div class="list" id="list"></div>
+    <div class="listcol">
+      <div class="sortbar"><label class="flabel" for="orden" style="min-width:0">Ordenar</label>
+        <select id="orden">
+          <option value="barrio">Por barrios</option>
+          <option value="cerca">Más cerca de mí</option>
+          <option value="recientes">Últimos añadidos</option>
+          <option value="precio">Precio: de menos a más</option>
+        </select></div>
+      <div class="list" id="list"></div>
+    </div>
   </main>
 
   <p class="foot">Tu ubicación se usa solo en tu dispositivo para situarte en el mapa; no se guarda ni se envía. Las ubicaciones de los sitios son aproximadas: usa el botón de Google Maps para llegar.</p>
@@ -1205,7 +1216,7 @@ function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTime
 /* ---------- estado de la vista ---------- */
 let city=location.hash==="#sevilla"?"sevilla":"madrid";
 const F={estado:"todos",precios:new Set(),barrio:"",estilos:new Set(),tarde:false,cocina:false};
-let near=null,nearPicking=false;
+let near=null,nearPicking=false,orden="barrio";
 function distM(a,b,c,d){const R=6371000,r=Math.PI/180,x=(d-b)*r*Math.cos((a+c)/2*r),y=(c-a)*r;return Math.hypot(x,y)*R;}
 const distTxt=m=>m<1000?"a "+Math.round(m/10)*10+" m":"a "+(m/1000).toFixed(1).replace(".",",")+" km";
 const tier=p=>p==null?"":(p<=15?"€":p<=30?"€€":"€€€");
@@ -1304,7 +1315,9 @@ function renderFilters(){
   [...F.estilos].forEach(s=>{if(!ec.has(s))F.estilos.delete(s);});
   $("fEstilos").innerHTML=[...ec.keys()].sort((a,b)=>ec.get(b)-ec.get(a)||cmp(a,b)).map(s=>'<button type="button" class="chip" data-estilo="'+esc(s)+'" aria-pressed="'+F.estilos.has(s)+'">'+esc(s)+'<span class="n">'+ec.get(s)+"</span></button>").join("")||'<span style="color:var(--muted);font-size:14px">Aparecerán aquí los tipos de comida que vayas apuntando.</span>';
   $("fHorario").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(!!F[b.dataset.h])));
-  $("nearBtn").textContent=near?"Quitar orden por cercanía":"Ver mi ubicación";
+  $("nearBtn").textContent=near?"Quitar mi ubicación":"Ver mi ubicación";
+  if(orden==="cerca"&&!near)orden="barrio";
+  $("orden").value=orden;
   $("clearBtn").hidden=!filtersOn();
   $("tabMadrid").setAttribute("aria-current",String(city==="madrid"));$("tabSevilla").setAttribute("aria-current",String(city==="sevilla"));
 }
@@ -1334,15 +1347,24 @@ function renderList(){
   if(showingExamples())html+='<p class="notice" style="margin:0">Estos sitios son ejemplos para que veas cómo queda. Desaparecen en cuanto guardes el primero tuyo.</p>';
   if(!v.length){
     html+='<div class="empty">'+(inCity().length?"Ningún sitio coincide con estos filtros.":(store.mode==="mio"?"Todavía no tienes sitios aquí en "+CITIES[city].name+". Pulsa «Añadir sitio» para empezar.":"No hay sitios en "+CITIES[city].name+" en esta lista."))+"</div>";
-  }else if(near){
-    const arr=v.map(p=>({p,d:p.lat!=null?distM(near.lat,near.lng,p.lat,p.lng):null})).sort((a,b)=>(a.d==null?1e12:a.d)-(b.d==null?1e12:b.d));
-    html+='<section class="group"><h2>Cerca de ti<small>desde '+esc(near.barrio||"el punto marcado")+'</small></h2><div class="cards">'+arr.map(x=>cardHtml(x.p,x.d)).join("")+"</div></section>";
   }else{
-    const g=new Map();v.forEach(p=>{const k=p.barrio||"Sin barrio";if(!g.has(k))g.set(k,[]);g.get(k).push(p);});
-    [...g.keys()].sort((a,b)=>g.get(b).length-g.get(a).length||cmp(a,b)).forEach(k=>{
-      const arr=g.get(k).sort((a,b)=>cmp(a.nombre,b.nombre));
-      html+='<section class="group"><h2>'+esc(k)+"<small>"+arr.length+(arr.length===1?" sitio":" sitios")+'</small></h2><div class="cards">'+arr.map(p=>cardHtml(p)).join("")+"</div></section>";
-    });
+    const dist=p=>near&&p.lat!=null?distM(near.lat,near.lng,p.lat,p.lng):null;
+    const flat=(titulo,sub,arr)=>'<section class="group"><h2>'+titulo+"<small>"+esc(sub)+'</small></h2><div class="cards">'+arr.map(p=>cardHtml(p,dist(p))).join("")+"</div></section>";
+    const n=v.length+(v.length===1?" sitio":" sitios");
+    if(orden==="cerca"&&near){
+      const arr=v.slice().sort((a,b)=>{const x=dist(a),y=dist(b);return (x==null?1e12:x)-(y==null?1e12:y);});
+      html+=flat("Cerca de ti","desde "+(near.barrio||"el punto marcado"),arr);
+    }else if(orden==="recientes"){
+      html+=flat("Últimos añadidos",n,v.slice().sort((a,b)=>String(b.creado).localeCompare(String(a.creado))));
+    }else if(orden==="precio"){
+      html+=flat("De menos a más precio",n,v.slice().sort((a,b)=>(a.precio==null?1e9:a.precio)-(b.precio==null?1e9:b.precio)||cmp(a.nombre,b.nombre)));
+    }else{
+      const g=new Map();v.forEach(p=>{const k=p.barrio||"Sin barrio";if(!g.has(k))g.set(k,[]);g.get(k).push(p);});
+      [...g.keys()].sort((a,b)=>g.get(b).length-g.get(a).length||cmp(a,b)).forEach(k=>{
+        const arr=g.get(k).sort((a,b)=>cmp(a.nombre,b.nombre));
+        html+='<section class="group"><h2>'+esc(k)+"<small>"+arr.length+(arr.length===1?" sitio":" sitios")+'</small></h2><div class="cards">'+arr.map(p=>cardHtml(p,dist(p))).join("")+"</div></section>";
+      });
+    }
   }
   el.innerHTML=html;
 }
@@ -1358,6 +1380,11 @@ $("fEstilos").addEventListener("click",e=>{const b=e.target.closest("button");if
 $("fBarrio").addEventListener("change",e=>{F.barrio=e.target.value;renderAll();});
 $("fHorario").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;F[b.dataset.h]=!F[b.dataset.h];renderAll();});
 $("clearBtn").addEventListener("click",()=>{F.estado="todos";F.precios.clear();F.barrio="";F.estilos.clear();F.tarde=F.cocina=false;renderAll();});
+$("orden").addEventListener("change",e=>{
+  const v=e.target.value;
+  if(v==="cerca"&&!near){e.target.value=orden;startGps(true);return;}
+  orden=v;renderAll();
+});
 $("nearBtn").addEventListener("click",()=>{
   if(near){clearNear();renderAll();return;}
   startGps(true);
@@ -1713,7 +1740,7 @@ function goToMe(){
   if(!c){toast("Ahora mismo estás fuera de Madrid y de Sevilla.");return;}
   if(c!==city){location.hash="#"+c;setCity(c);}
   nearLayer.clearLayers();nearPicking=false;
-  near={lat:gps.lat,lng:gps.lng,barrio:detectBarrio(c,gps.lat,gps.lng),gps:true};
+  near={lat:gps.lat,lng:gps.lng,barrio:detectBarrio(c,gps.lat,gps.lng),gps:true};orden="cerca";
   map.setView([gps.lat,gps.lng],Math.max(map.getZoom(),16));drawGps();renderAll();
 }
 function startGps(center){
@@ -1738,7 +1765,7 @@ const LocControl=L.Control.extend({onAdd(){const b=L.DomUtil.create("button","lo
 new LocControl({position:"topright"}).addTo(map);
 function setNear(lat,lng){
   nearPicking=false;$("pickbar").hidden=true;
-  near={lat,lng,barrio:detectBarrio(city,lat,lng)};
+  near={lat,lng,barrio:detectBarrio(city,lat,lng)};orden="cerca";
   nearLayer.clearLayers();L.marker([lat,lng],{interactive:false,keyboard:false,zIndexOffset:900,icon:meIcon()}).addTo(nearLayer);
   map.setView([lat,lng],Math.max(map.getZoom(),15));drawGps();renderAll();
 }
