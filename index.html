@@ -1149,6 +1149,19 @@ async function savePlace(p){
   const i=store.saved.findIndex(x=>x.id===rec.id);if(i>=0)store.saved[i]=rec;else store.saved.push(rec);
   paintChrome();renderAll();return rec.id;
 }
+async function copyPlaces(arr){
+  if(!app.user||!arr.length)return;
+  const ciudad=arr[0].ciudad,lista=await ensureLista(ciudad);
+  const mios=new Set(store.saved.filter(p=>p.ciudad===ciudad).map(p=>norm(p.nombre)));
+  const nuevos=arr.filter(p=>!mios.has(norm(p.nombre)));
+  if(nuevos.length){
+    const rows=nuevos.map(p=>({lista_id:lista.id,nombre:p.nombre,estado:"pendiente",direccion:p.direccion,barrio:p.barrio,estilos:p.estilos,precio:p.precio,notas:"",lat:p.lat,lng:p.lng,aprox:p.aprox,tarde:p.tarde,cocina:p.cocina}));
+    const r=await sb.from("sitios").insert(rows).select();if(r.error)throw r.error;
+    (r.data||[]).forEach(d=>store.saved.push(clean(Object.assign({},d,{ciudad}),d.id)));
+  }
+  const ya=arr.length-nuevos.length;
+  toast(nuevos.length?(nuevos.length===1?"Guardado 1 sitio":"Guardados "+nuevos.length+" sitios")+" como pendiente"+(nuevos.length===1?"":"s")+(ya?" ("+ya+" ya lo"+(ya===1?"":"s")+" tenías)":"")+".":"Ya tenías "+(arr.length===1?"ese sitio":"todos esos sitios")+".");
+}
 async function removePlace(id){
   const r=await sb.from("sitios").delete().eq("id",id);if(r.error)throw r.error;
   store.saved=store.saved.filter(x=>x.id!==id);paintChrome();renderAll();
@@ -1200,7 +1213,7 @@ function paintChrome(){
       '<span class="txt">Tus sitios de <b>'+esc(CITIES[city].name)+"</b>"+(n?": "+vis+".":". Empieza creando el primero.")+"</span>"+
       (l&&n?'<button type="button" class="linkbtn" id="editListBtn">Cambiar quién los ve</button>':"")+"</div>";
   }else if(m==="compartida"&&app.shared){
-    bar.innerHTML='<span class="txt">Estás viendo los sitios de <b>'+esc(app.shared.autor||"otra persona")+"</b> en "+esc(CITIES[app.shared.ciudad].name)+'. Es de solo lectura.</span><a class="btn small" href="'+esc(SITE)+'">'+(app.user?"Ir a mis sitios":"Crear mi cuenta")+"</a>";
+    bar.innerHTML='<span class="txt">Estás viendo los sitios de <b>'+esc(app.shared.autor||"otra persona")+"</b> en "+esc(CITIES[app.shared.ciudad].name)+'. Es de solo lectura.</span>'+(app.user&&app.shared.sitios.length?'<button type="button" class="btn small primary" id="copyAllBtn">Guardar todos en mis sitios</button>':"")+'<a class="btn small" href="'+esc(SITE)+'">'+(app.user?"Ir a mis sitios":"Crear mi cuenta")+"</a>";
   }else if(m==="muestra"){
     bar.innerHTML='<span class="txt">Estos son <b>sitios de muestra</b>. Crea tu cuenta para guardar los tuyos en Madrid y Sevilla y compartirlos.</span>'+(sb?'<button type="button" class="btn small primary" id="ctaAlta">Crear cuenta</button>':"");
   }else bar.innerHTML="";
@@ -1326,6 +1339,7 @@ function cardHtml(p,dist){
   const acts=[];
   if(p.lat!=null)acts.push('<button class="btn small" type="button" data-act="map" data-id="'+esc(p.id)+'">Ver en el mapa</button>');
   acts.push('<a class="btn small" href="'+esc(gmaps(p))+'" target="_blank" rel="noopener">Google Maps</a>');
+  if(store.mode==="compartida"&&app.user)acts.push('<button class="btn small" type="button" data-act="copy" data-id="'+esc(p.id)+'">Guardar en mis sitios</button>');
   if(!p.ejemplo&&store.canWrite){
     if(p.estado==="pendiente")acts.push('<button class="btn small" type="button" data-act="visited" data-id="'+esc(p.id)+'">Ya he ido</button>');
     acts.push('<button class="btn small" type="button" data-act="edit" data-id="'+esc(p.id)+'">Editar</button>');
@@ -1476,7 +1490,9 @@ $("liDel").addEventListener("click",async()=>{
 $("listbar").addEventListener("click",e=>{
   if(e.target.closest("#newPlaceBtn")){openForm(null);return;}
   if(e.target.closest("#editListBtn")){const cur=listasCiudad(city)[0];if(cur)openList(cur);return;}
-  if(e.target.closest("#ctaAlta")){openAuth("alta");}
+  if(e.target.closest("#ctaAlta")){openAuth("alta");return;}
+  const ca=e.target.closest("#copyAllBtn");
+  if(ca&&app.shared){ca.disabled=true;copyPlaces(app.shared.sitios.filter(p=>p.ciudad===app.shared.ciudad)).catch(saveFailed).finally(()=>{ca.disabled=false;});}
 });
 
 /* ---------- panel de usuarios ---------- */
@@ -1570,6 +1586,7 @@ document.addEventListener("click",e=>{
   if(act==="map"){const m=markers.get(p.id);if(!m)return;$("mapwrap").scrollIntoView({behavior:smooth(),block:"start"});map.setView([p.lat,p.lng],Math.max(map.getZoom(),15));m.openPopup();}
   else if(act==="card"){const c=$("card-"+p.id);if(!c)return;map.closePopup();c.scrollIntoView({behavior:smooth(),block:"center"});c.classList.add("flash");setTimeout(()=>c.classList.remove("flash"),1600);}
   else if(act==="edit"){openForm(p);}
+  else if(act==="copy"){b.disabled=true;copyPlaces([p]).catch(saveFailed).finally(()=>{b.disabled=false;});}
   else if(act==="visited"){b.disabled=true;savePlace(Object.assign({},p,{estado:"fui"})).then(()=>toast("Apuntado: ya has ido a "+p.nombre)).catch(saveFailed);}
 });
 function saveFailed(e){
