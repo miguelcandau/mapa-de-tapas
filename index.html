@@ -1061,9 +1061,8 @@ const label=(txt,cls)=>L.divIcon({className:"",html:'<div class="blabel '+(cls||
 let tiles=null;
 function drawBase(){
   if(!tiles){
-    const dark=document.documentElement.dataset.theme==="dark"||(document.documentElement.dataset.theme!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);
-    tiles=L.tileLayer("https://{s}.basemaps.cartocdn.com/"+(dark?"dark_all":"rastertiles/voyager")+"/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:20,
-      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'}).addTo(map);
+    tiles=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
     map.attributionControl.setPrefix(false);
   }
   map.setMaxBounds(L.latLngBounds(CITIES[city].box).pad(.3));
