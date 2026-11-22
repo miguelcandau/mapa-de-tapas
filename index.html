@@ -1621,7 +1621,7 @@ function locate(auto){
   const btn=$("locAsk"),c=CITIES[draft.ciudad],mine=draft,box=c.box,vb=[box[0][1],box[1][0],box[1][1],box[0][0]].join(",");
   btn.disabled=true;$("locHint").textContent="Buscando dónde está "+draft.nombre+"…";
   const q=async txt=>{
-    const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&accept-language=es&countrycodes=es&bounded=1&viewbox="+vb+"&q="+encodeURIComponent(txt));
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&extratags=1&accept-language=es&countrycodes=es&bounded=1&viewbox="+vb+"&q="+encodeURIComponent(txt));
     if(!r.ok)throw 0;const j=await r.json();return j&&j[0]?j[0]:null;};
   locating=(async()=>{
   try{
@@ -1635,7 +1635,20 @@ function locate(auto){
       setLocation(Number(hit.lat),Number(hit.lon),false);
       const a=hit.address||{};
       if(!draft.direccion&&a.road){draft.direccion=(a.road+(a.house_number?", "+a.house_number:"")).slice(0,120);$("inDir").value=draft.direccion;}
-      $("locHint").textContent="Ubicado"+(draft.barrio?" en "+draft.barrio:"")+(porDireccion?" por la dirección.":". Si no es el sitio correcto, añade la dirección o ajústalo en el mapa.");
+      const extra=[];
+      if(!porDireccion&&!draft.id){
+        const x=hit.extratags||{};
+        const CU={tapas:"Tradicional",spanish:"Tradicional",regional:"Tradicional",seafood:"Marisco",fish:"Marisco",asturian:"Asturiana",galician:"Gallega",basque:"Pintxos",andalusian:"Andaluza",wine:"Vinos"};
+        if(!draft.estilos.length&&x.cuisine){String(x.cuisine).split(/[;,]/).forEach(c=>{const m=CU[c.trim().toLowerCase()];if(m&&!draft.estilos.includes(m))draft.estilos.push(m);});if(draft.estilos.length)extra.push("tipo de comida");}
+        if(x.opening_hours&&!draft.tarde){
+          const t=v=>{const m=v.split(":");return Number(m[0])*60+Number(m[1]);};
+          const rs=String(x.opening_hours).match(/\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}/g)||[];
+          const abre=/24\/7/.test(x.opening_hours)||rs.some(r=>{const ab=r.split("-").map(y=>t(y.trim()));let fin=ab[1];if(fin<=ab[0])fin+=1440;return ab[0]<=960&&fin>=1020;});
+          if(abre){draft.tarde=true;$("inTarde").checked=true;}
+          extra.push("horario ("+String(x.opening_hours).slice(0,60)+")");
+        }
+      }
+      $("locHint").textContent="Ubicado"+(draft.barrio?" en "+draft.barrio:"")+(porDireccion?" por la dirección.":". Si no es el sitio correcto, añade la dirección o ajústalo en el mapa.")+(extra.length?" También he rellenado: "+extra.join(" y ")+".":"");
     }else $("locHint").textContent="No lo encuentro por el nombre. Escribe la dirección y se ubicará solo, o márcalo en el mapa.";
     paintForm();
   }catch(e){
