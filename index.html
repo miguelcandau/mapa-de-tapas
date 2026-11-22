@@ -739,8 +739,9 @@ select{padding-right:28px}
 }
 
 /* mapa */
-.leaflet-container{font-family:var(--body);background:var(--map-land)}
-path.barrio{fill:var(--map-barrio);stroke:var(--map-line);stroke-width:1;fill-opacity:1}
+.leaflet-container{font-family:var(--body);background:var(--map-barrio)}
+path.barrio{fill:none;stroke:var(--map-line);stroke-width:1.2}
+.leaflet-tile-pane .rastertint{filter:grayscale(1) sepia(.45) brightness(1.08) contrast(.85);opacity:.55}
 path.river{stroke:var(--river);fill:none}
 .blabel{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;text-align:center;pointer-events:none;transform:translate(-50%,-50%);width:max-content}
 .blabel.rio{font-style:italic;color:var(--accent);letter-spacing:.12em}
@@ -925,7 +926,10 @@ path.acc{fill:var(--accent);fill-opacity:.14;stroke:var(--accent);stroke-opacity
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
 <script src="geo-madrid.js"></script>
 <script>
 (function(){
@@ -1059,12 +1063,42 @@ const baseLayer=L.layerGroup().addTo(map), pinLayer=L.layerGroup().addTo(map), n
 const markers=new Map();
 const label=(txt,cls)=>L.divIcon({className:"",html:'<div class="blabel '+(cls||"")+'">'+esc(txt)+"</div>",iconSize:[0,0]});
 let tiles=null;
+function mapStyle(dark){
+  const c=dark?{bg:"#23201D",water:"#151311",park:"#28251F",minor:"#2E2924",mid:"#3A332C",main:"#4D4238",txt:"#B5A79C"}
+              :{bg:"#FFF4E9",water:"#EFD5BD",park:"#F8E9D7",minor:"#F3E2D0",mid:"#EACFB7",main:"#DDB899",txt:"#7A6658"};
+  const road=(id,classes,minzoom,w0,w1)=>({id,type:"line",source:"omt","source-layer":"transportation",minzoom,
+    filter:["all",["==","$type","LineString"],["in","class"].concat(classes)],layout:{"line-cap":"round","line-join":"round"},
+    paint:{"line-color":c[id],"line-width":["interpolate",["linear"],["zoom"],minzoom,w0,17,w1]}});
+  return {version:8,glyphs:"https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+    sources:{omt:{type:"vector",url:"https://tiles.openfreemap.org/planet"}},
+    layers:[
+      {id:"bg",type:"background",paint:{"background-color":c.bg}},
+      {id:"park",type:"fill",source:"omt","source-layer":"park",paint:{"fill-color":c.park}},
+      {id:"water",type:"fill",source:"omt","source-layer":"water",paint:{"fill-color":c.water}},
+      road("minor",["minor","service"],13.5,.4,2.5),
+      road("mid",["secondary","tertiary"],11,.5,4.5),
+      road("main",["primary","trunk","motorway"],10,.8,7),
+      {id:"names",type:"symbol",source:"omt","source-layer":"transportation_name",minzoom:12.5,
+        filter:["in","class","primary","trunk","motorway","secondary"],
+        layout:{"symbol-placement":"line","text-field":["coalesce",["get","name:es"],["get","name"]],"text-font":["Noto Sans Regular"],
+          "text-size":["interpolate",["linear"],["zoom"],12.5,10,17,13.5],"text-letter-spacing":.04,"symbol-spacing":380},
+        paint:{"text-color":c.txt,"text-halo-color":c.bg,"text-halo-width":1.6}}
+    ]};
+}
 function drawBase(){
   if(!tiles){
-    tiles=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,
-      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
+    const dark=document.documentElement.dataset.theme==="dark"||(document.documentElement.dataset.theme!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+    const att='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>';
+    try{
+      if(!L.maplibreGL||!window.maplibregl)throw 0;
+      tiles=L.maplibreGL({style:mapStyle(dark),attribution:att,interactive:false}).addTo(map);
+    }catch(e){
+      tiles=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,className:"rastertint",attribution:att}).addTo(map);
+    }
     map.attributionControl.setPrefix(false);
   }
+  baseLayer.clearLayers();
+  if(city==="madrid")MAD.forEach(b=>L.polygon(b.r,{className:"barrio",interactive:false}).addTo(baseLayer));
   map.setMaxBounds(L.latLngBounds(CITIES[city].box).pad(.3));
   $("mapnote").textContent="";
 }
