@@ -820,6 +820,15 @@ path.acc{fill:var(--accent);fill-opacity:.14;stroke:var(--accent);stroke-opacity
 .listbar .txt{flex:1 1 240px;color:var(--muted);font-size:14.5px}
 .listbar .txt b{color:var(--ink)}
 .chip small{opacity:.6;font-weight:500;margin-left:5px}
+.vistabar{display:flex;gap:10px;align-items:center;margin:14px 0 0}
+.vistabar select{flex:1 1 auto;min-width:0;max-width:460px;font-weight:600}
+.chefbar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;width:100%;background:var(--surface);border:1px solid var(--line,rgba(0,0,0,.12));border-radius:16px;padding:12px 14px}
+.chefbar .txt{flex:1 1 220px}
+.chefbar .btn.primary{padding:11px 18px;font-size:15.5px}
+.card .rec{font-size:13.5px;color:var(--muted);margin-top:6px}
+.card .rec b{color:var(--ink);font-weight:600}
+.pill.mio{background:var(--fui-fill);color:#fff;border-color:transparent}
+.btn.add{font-weight:700}
 .publicas{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0}
 a.chip{text-decoration:none;color:var(--ink);display:inline-block}
 .radios{display:flex;flex-direction:column;gap:8px}
@@ -863,6 +872,7 @@ a.chip{text-decoration:none;color:var(--ink);display:inline-block}
     <button class="btn primary" id="addBtn" type="button" hidden style="display:none">+ Crear nuevo sitio</button>
   </header>
     <p class="notice" id="notice" hidden></p>
+  <div class="vistabar" id="vistabar" hidden><label class="flabel" for="vista" style="min-width:0">Ver</label><select id="vista" aria-label="Qué sitios ver"></select></div>
   <div class="listbar" id="listbar"></div>
   <div class="publicas" id="publicas" hidden></div>
 
@@ -1090,10 +1100,39 @@ let sb=null;try{sb=window.supabase.createClient(SB_URL,SB_KEY);}catch(e){sb=null
 const SITE=location.origin+location.pathname;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const sharedId=(()=>{const v=new URLSearchParams(location.search).get("l");return v&&UUID.test(v)?v:null;})();
-const app={user:null,nombre:"",listas:[],sel:"todas",shared:null,publicas:{},muestra:[]};
+const app={user:null,nombre:"",listas:[],sel:"todas",shared:null,publicas:{},muestra:[],reco:[],chef:null};
 const VIS={privada:"privada",enlace:"con enlace",publica:"pública"};
 const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
+const TODOS="*";
+function chefList(){const m=new Map();app.reco.forEach(r=>m.set(r.chef,(m.get(r.chef)||0)+1));return [...m.entries()].sort((a,b)=>b[1]-a[1]||cmp(a[0],b[0]));}
+function mioDe(nombre,ciudad){const k=norm(nombre);return store.saved.find(x=>x.ciudad===ciudad&&norm(x.nombre)===k)||null;}
+function chefPlaces(){
+  const rows=app.chef===TODOS?app.reco:app.reco.filter(r=>r.chef===app.chef),g=new Map();
+  rows.forEach(r=>{const k=norm(r.sitio);if(!g.has(k))g.set(k,[]);g.get(k).push(r);});
+  return [...g.values()].map(rs=>{
+    const r=rs[0],nombre=r.sitio,ok=r.lat!=null&&r.lng!=null;
+    const barrio=ok?(detectBarrio("madrid",r.lat,r.lng)||"Fuera de Madrid capital"):"";
+    const p=clean({nombre,ciudad:"madrid",estado:"pendiente",direccion:r.direccion||r.zona||"",barrio,estilos:r.estilos||[],precio:r.precio,notas:"",lat:ok?r.lat:null,lng:ok?r.lng:null,tarde:r.tarde,creado:String(r.anio||"")},"c"+r.id);
+    p.recs=rs.map(x=>({chef:x.chef,destaca:x.destaca,fuente:x.fuente,anio:x.anio}));p.cerrado=!!r.cerrado;
+    p.notaCopia=("Recomendado por "+p.recs.map(x=>x.chef+(x.destaca?": "+x.destaca:"")).join(" · ")).slice(0,600);
+    p.mio=app.user?mioDe(nombre,"madrid"):null;if(p.mio)p.estado=p.mio.estado;
+    return p;});
+}
+async function loadReco(){
+  if(!sb||app.reco.length)return;
+  try{const r=await sb.from("recomendados").select("*").order("id");if(r.error||!r.data)return;app.reco=r.data;
+    const q=new URLSearchParams(location.search).get("chef");
+    if(q&&!sharedId&&(q===TODOS||app.reco.some(x=>x.chef===q))){app.chef=q;if(city!=="madrid"){city="madrid";location.hash="#madrid";}paintChrome();drawBase();renderAll(true);}
+    else paintChrome();
+  }catch(e){}
+}
+function setChef(v){
+  app.chef=v||null;F.barrio="";F.estilos.clear();F.estado="todos";
+  if(app.chef&&city!=="madrid"){location.hash="#madrid";city="madrid";drawBase();}
+  paintChrome();renderAll(true);
+}
 function places(){
+  if(app.chef)return chefPlaces();
   if(store.mode==="compartida")return app.shared?app.shared.sitios:[];
   if(store.mode==="mio")return store.saved;
   return app.muestra;
@@ -1159,12 +1198,13 @@ async function copyPlaces(arr){
   const mios=new Set(store.saved.filter(p=>p.ciudad===ciudad).map(p=>norm(p.nombre)));
   const nuevos=arr.filter(p=>!mios.has(norm(p.nombre)));
   if(nuevos.length){
-    const rows=nuevos.map(p=>({lista_id:lista.id,nombre:p.nombre,estado:"pendiente",direccion:p.direccion,barrio:p.barrio,estilos:p.estilos,precio:p.precio,notas:"",lat:p.lat,lng:p.lng,aprox:p.aprox,tarde:p.tarde,cocina:p.cocina}));
+    const rows=nuevos.map(p=>({lista_id:lista.id,nombre:p.nombre,estado:"pendiente",direccion:p.direccion,barrio:p.barrio,estilos:p.estilos,precio:p.precio,notas:p.notaCopia||"",lat:p.lat,lng:p.lng,aprox:p.aprox,tarde:p.tarde,cocina:p.cocina}));
     const r=await sb.from("sitios").insert(rows).select();if(r.error)throw r.error;
     (r.data||[]).forEach(d=>store.saved.push(clean(Object.assign({},d,{ciudad}),d.id)));
   }
   const ya=arr.length-nuevos.length;
   toast(nuevos.length?(nuevos.length===1?"Guardado 1 sitio":"Guardados "+nuevos.length+" sitios")+" como pendiente"+(nuevos.length===1?"":"s")+(ya?" ("+ya+" ya lo"+(ya===1?"":"s")+" tenías)":"")+".":"Ya tenías "+(arr.length===1?"ese sitio":"todos esos sitios")+".");
+  if(app.chef){paintChrome();renderAll();}
 }
 async function removePlace(id){
   const r=await sb.from("sitios").delete().eq("id",id);if(r.error)throw r.error;
@@ -1189,7 +1229,7 @@ async function refresh(session){
     notice("No se han podido cargar tus listas. Recarga la página para volver a intentarlo.");
   }
   store.canWrite=store.mode==="mio";
-  paintChrome();drawBase();renderAll(true);loadPublicas(city);
+  paintChrome();drawBase();renderAll(true);loadPublicas(city);loadReco();
 }
 let sample=null;
 async function initStore(){
@@ -1210,6 +1250,18 @@ function paintChrome(){
   $("addBtn").hidden=m!=="mio";
   $("accountBtn").textContent=app.user?(app.nombre||"Mi cuenta"):"Entrar";
   $("accountBtn").hidden=!sb;
+  const vb=$("vistabar"),chefs=chefList();
+  vb.hidden=!chefs.length||m==="loading";
+  if(chefs.length){
+    const base=m==="mio"?"Los que me gustan":(m==="compartida"&&app.shared?"Los sitios de "+(app.shared.autor||"otra persona"):"Sitios de muestra");
+    $("vista").innerHTML='<option value="">'+esc(base)+'</option><optgroup label="Los favoritos de…">'+chefs.map(c=>'<option value="'+esc(c[0])+'"'+(app.chef===c[0]?" selected":"")+'>'+esc(c[0])+" ("+c[1]+")</option>").join("")+'</optgroup><option value="'+TODOS+'"'+(app.chef===TODOS?" selected":"")+'>Todos los chefs juntos</option>';
+  }
+  if(app.chef){
+    const ps=chefPlaces(),falta=ps.filter(p=>!p.mio&&!p.cerrado).length,quien=app.chef===TODOS?"<b>todos los chefs</b>":"<b>"+esc(app.chef)+"</b>";
+    bar.innerHTML='<div class="chefbar"><span class="txt">Los favoritos de '+quien+" en Madrid: "+ps.length+(ps.length===1?" sitio":" sitios")+(app.user?(falta?". Guarda uno con «+ Guardar» o todos de una vez.":". Ya los tienes todos."):". Crea tu cuenta para guardarlos en tus sitios.")+"</span>"+
+      (app.user?(falta?'<button type="button" class="btn primary" id="chefAllBtn">+ Guardar '+(falta===ps.length?(falta===1?"el sitio":"los "+falta):(falta===1?"el que te falta":"los "+falta+" que te faltan"))+"</button>":'<span class="pill mio">✓ Todos en tus sitios</span>'):(sb?'<button type="button" class="btn primary" id="ctaAlta">Crear cuenta</button>':""))+
+      '<button type="button" class="linkbtn" id="chefBack">Volver</button></div>';
+  }else
   if(m==="mio"){
     const l=listasCiudad(city)[0],n=store.saved.filter(p=>p.ciudad===city).length;
     const vis=!l||l.visibilidad==="privada"?"Solo los ves tú":(l.visibilidad==="enlace"?"Visibles para quien tenga tu enlace":"Públicos");
@@ -1222,7 +1274,7 @@ function paintChrome(){
     bar.innerHTML='<span class="txt">Estos son <b>sitios de muestra</b>. Crea tu cuenta para guardar los tuyos en Madrid y Sevilla y compartirlos.</span>'+(sb?'<button type="button" class="btn small primary" id="ctaAlta">Crear cuenta</button>':"");
   }else bar.innerHTML="";
   const pubs=(app.publicas[city]||[]).filter(x=>!app.user||x.owner!==app.user.id).filter(x=>!app.shared||x.id!==app.shared.id),pb=$("publicas");
-  pb.hidden=!pubs.length||m==="loading";
+  pb.hidden=!pubs.length||m==="loading"||!!app.chef;
   if(pubs.length)pb.innerHTML='<span class="flabel" style="min-width:0">Sitios de otras personas</span>'+pubs.map(x=>'<a class="chip" href="'+esc(SITE+"?l="+x.id+"#"+city)+'">'+esc(x.autor||"Sin nombre")+"</a>").join("");
 }
 function setReadOnly(){store.canWrite=false;$("addBtn").hidden=true;renderList();}
@@ -1317,6 +1369,7 @@ function renderSummary(){
   if(store.mode==="loading")return;
   const all=inCity(),v=visible(),fui=all.filter(p=>p.estado==="fui").length;
   let t=(store.mode==="compartida"&&app.shared?"":"")+CITIES[city].name+": "+all.length+(all.length===1?" sitio":" sitios")+" · "+fui+(fui===1?" visitado":" visitados")+" · "+(all.length-fui)+(all.length-fui===1?" pendiente":" pendientes");
+  if(app.chef){const mios=all.filter(p=>p.mio).length;t=(app.chef===TODOS?"Todos los chefs":"Favoritos de "+app.chef)+": "+all.length+(all.length===1?" sitio":" sitios")+(app.user?" · "+mios+" ya en tus sitios":"");}
   if(filtersOn())t+=" · mostrando "+v.length;
   if(showingExamples())t+=" (ejemplos)";
   $("summary").textContent=t;
@@ -1343,18 +1396,21 @@ function cardHtml(p,dist){
   const acts=[];
   if(p.lat!=null)acts.push('<button class="btn small" type="button" data-act="map" data-id="'+esc(p.id)+'">Ver en el mapa</button>');
   acts.push('<a class="btn small" href="'+esc(gmaps(p))+'" target="_blank" rel="noopener">Google Maps</a>');
-  if(store.mode==="compartida"&&app.user)acts.push('<button class="btn small" type="button" data-act="copy" data-id="'+esc(p.id)+'">Guardar en mis sitios</button>');
-  if(!p.ejemplo&&store.canWrite){
+  if(app.chef){if(!p.mio&&!p.cerrado)acts.unshift('<button class="btn small primary add" type="button" data-act="'+(app.user?"copy":"alta")+'" data-id="'+esc(p.id)+'">+ Guardar</button>');}
+  else if(store.mode==="compartida"&&app.user)acts.push('<button class="btn small" type="button" data-act="copy" data-id="'+esc(p.id)+'">Guardar en mis sitios</button>');
+  if(!p.ejemplo&&store.canWrite&&!app.chef){
     if(p.estado==="pendiente")acts.push('<button class="btn small" type="button" data-act="visited" data-id="'+esc(p.id)+'">Ya he ido</button>');
     acts.push('<button class="btn small" type="button" data-act="edit" data-id="'+esc(p.id)+'">Editar</button>');
   }
-  return '<article class="card '+(p.estado==="fui"?"":"pend")+'" id="card-'+esc(p.id)+'"><div class="head"><h3>'+esc(p.nombre)+'</h3><span>'+(p.ejemplo?'<span class="pill ej">Ejemplo</span> ':"")+'<span class="pill '+(p.estado==="fui"?"":"pend")+'">'+(p.estado==="fui"?"Ya he ido":"Pendiente")+"</span></span></div>"+
+  return '<article class="card '+(p.estado==="fui"?"":"pend")+'" id="card-'+esc(p.id)+'"><div class="head"><h3>'+esc(p.nombre)+'</h3><span>'+(p.ejemplo?'<span class="pill ej">Ejemplo</span> ':"")+(app.chef?(p.mio?'<span class="pill mio">✓ En mis sitios</span>':'<span class="pill pend">Recomendado</span>'):'<span class="pill '+(p.estado==="fui"?"":"pend")+'">'+(p.estado==="fui"?"Ya he ido":"Pendiente")+"</span>")+"</span></div>"+
     (p.estilos.length?'<div class="line">'+esc(p.estilos.join(" · "))+"</div>":"")+
     (dist!=null?'<div class="line"><span class="dist">'+distTxt(dist)+"</span>"+(p.barrio?" · "+esc(p.barrio):"")+"</div>":"")+
     '<div class="line">'+price+"</div>"+
     (p.tarde||p.cocina?'<div class="line">'+[p.tarde?"Abierto a partir de las 16:00":"",p.cocina?"No cierra cocina":""].filter(Boolean).join(" · ")+"</div>":"")+
     (p.direccion?'<div class="line">'+esc(p.direccion)+"</div>":"")+
     (p.lat==null?'<div class="line">Sin ubicar en el mapa</div>':(p.aprox?'<div class="line">Ubicación aproximada</div>':""))+
+    (p.cerrado?'<div class="line"><b>Cerrado definitivamente</b> según Google</div>':"")+
+    (p.recs?p.recs.map(x=>'<div class="rec"><b>'+esc(x.chef)+"</b>"+(x.destaca?": "+esc(x.destaca):"")+(x.fuente?" <span>("+esc(x.fuente)+(x.anio?", "+x.anio:"")+")</span>":"")+"</div>").join(""):"")+
     (p.notas?'<div class="notes">'+esc(p.notas)+"</div>":"")+
     '<div class="acts">'+acts.join("")+"</div></article>";
 }
@@ -1364,7 +1420,7 @@ function renderList(){
   const v=visible();let html="";
   if(showingExamples())html+='<p class="notice" style="margin:0">Estos sitios son ejemplos para que veas cómo queda. Desaparecen en cuanto guardes el primero tuyo.</p>';
   if(!v.length){
-    html+='<div class="empty">'+(inCity().length?"Ningún sitio coincide con estos filtros.":(store.mode==="mio"?"Todavía no tienes sitios aquí en "+CITIES[city].name+". Pulsa «Añadir sitio» para empezar.":"No hay sitios en "+CITIES[city].name+" en esta lista."))+"</div>";
+    html+='<div class="empty">'+(inCity().length?"Ningún sitio coincide con estos filtros.":(store.mode==="mio"?"Todavía no tienes sitios aquí en "+CITIES[city].name+". Pulsa «Añadir sitio» para empezar.":(app.chef?"Las recomendaciones de chefs son, por ahora, solo de Madrid.":"No hay sitios en "+CITIES[city].name+" en esta lista.")))+"</div>";
   }else{
     const dist=p=>near&&p.lat!=null?distM(near.lat,near.lng,p.lat,p.lng):null;
     const flat=(titulo,sub,arr)=>'<section class="group"><h2>'+titulo+"<small>"+esc(sub)+'</small></h2><div class="cards">'+arr.map(p=>cardHtml(p,dist(p))).join("")+"</div></section>";
@@ -1391,7 +1447,8 @@ function setCity(c){city=c;F.barrio="";F.estilos.clear();clearNear();const cur=l
 function clearNear(){near=null;nearPicking=false;nearLayer.clearLayers();if(typeof drawGps==="function")drawGps();}
 
 /* ---------- interacción general ---------- */
-window.addEventListener("hashchange",()=>{const c=location.hash==="#sevilla"?"sevilla":"madrid";if(c!==city)setCity(c);});
+window.addEventListener("hashchange",()=>{const c=location.hash==="#sevilla"?"sevilla":"madrid";if(c!==city){if(c!=="madrid")app.chef=null;setCity(c);}});
+$("vista").addEventListener("change",e=>setChef(e.target.value));
 $("fEstado").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;F.estado=b.dataset.estado;renderAll();});
 $("fPrecio").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const t=b.dataset.precio;F.precios.has(t)?F.precios.delete(t):F.precios.add(t);renderAll();});
 $("fEstilos").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const t=b.dataset.estilo;F.estilos.has(t)?F.estilos.delete(t):F.estilos.add(t);renderAll();});
@@ -1495,6 +1552,9 @@ $("listbar").addEventListener("click",e=>{
   if(e.target.closest("#newPlaceBtn")){openForm(null);return;}
   if(e.target.closest("#editListBtn")){const cur=listasCiudad(city)[0];if(cur)openList(cur);return;}
   if(e.target.closest("#ctaAlta")){openAuth("alta");return;}
+  if(e.target.closest("#chefBack")){setChef("");return;}
+  const cb=e.target.closest("#chefAllBtn");
+  if(cb&&app.chef){cb.disabled=true;copyPlaces(chefPlaces().filter(p=>!p.mio&&!p.cerrado)).catch(saveFailed).finally(()=>{cb.disabled=false;});return;}
   const ca=e.target.closest("#copyAllBtn");
   if(ca&&app.shared){ca.disabled=true;copyPlaces(app.shared.sitios.filter(p=>p.ciudad===app.shared.ciudad)).catch(saveFailed).finally(()=>{ca.disabled=false;});}
 });
@@ -1619,6 +1679,7 @@ document.addEventListener("click",e=>{
   if(act==="map"){const m=markers.get(p.id);if(!m)return;$("mapwrap").scrollIntoView({behavior:smooth(),block:"start"});map.setView([p.lat,p.lng],Math.max(map.getZoom(),15));m.openPopup();}
   else if(act==="card"){const c=$("card-"+p.id);if(!c)return;map.closePopup();c.scrollIntoView({behavior:smooth(),block:"center"});c.classList.add("flash");setTimeout(()=>c.classList.remove("flash"),1600);}
   else if(act==="edit"){openForm(p);}
+  else if(act==="alta"){openAuth("alta");}
   else if(act==="copy"){b.disabled=true;copyPlaces([p]).catch(saveFailed).finally(()=>{b.disabled=false;});}
   else if(act==="visited"){b.disabled=true;savePlace(Object.assign({},p,{estado:"fui"})).then(()=>toast("Apuntado: ya has ido a "+p.nombre)).catch(saveFailed);}
 });
