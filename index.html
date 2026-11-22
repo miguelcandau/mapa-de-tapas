@@ -1507,11 +1507,39 @@ async function openAdmin(){
   $("adminSum").textContent=us.length+(us.length===1?" persona con cuenta":" personas con cuenta")+" · "+tot+(tot===1?" sitio guardado":" sitios guardados")+" en total.";
   $("adminList").innerHTML=us.map(u=>{
     const ls=(u.listas||[]).map(l=>esc(CITIES[l.ciudad]?CITIES[l.ciudad].name:l.ciudad)+" "+l.sitios+" ("+esc(VIS[l.visibilidad]||l.visibilidad)+")").join(" · ");
-    return '<article class="ucard"><h3>'+esc(u.nombre||"Sin nombre")+'</h3><div class="line">'+esc(u.email||"")+(u.confirmado?"":" · correo sin confirmar")+"</div>"+
+    const id=esc(u.id);
+    return '<article class="ucard" data-uid="'+id+'"><div class="head" style="display:flex;justify-content:space-between;gap:10px"><h3>'+esc(u.nombre||"Sin nombre")+"</h3><span>"+(u.es_admin?'<span class="pill ej">Administrador</span>':"")+(u.bloqueado?'<span class="pill">Bloqueado</span>':"")+"</span></div>"+
+      '<div class="line">'+esc(u.email||"")+(u.confirmado?"":" · correo sin confirmar")+"</div>"+
       '<div class="line">Alta: <b>'+esc(fdate(u.alta))+"</b> · Último acceso: <b>"+esc(fdate(u.ultimo_acceso))+"</b></div>"+
       '<div class="line">Sitios: <b>'+(u.sitios||0)+"</b> ("+(u.visitados||0)+" visitados, "+(u.pendientes||0)+" pendientes)"+(u.ultimo_sitio?" · Último añadido: <b>"+esc(fdate(u.ultimo_sitio))+"</b>":"")+"</div>"+
-      (ls?'<div class="line">'+ls+"</div>":"")+"</article>";}).join("");
+      (ls?'<div class="line">'+ls+"</div>":"")+
+      '<div class="acts" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">'+
+        (u.sitios?'<button class="btn small" type="button" data-adm="sitios">Ver sus sitios</button>':"")+
+        (u.es_admin?"":'<button class="btn small" type="button" data-adm="'+(u.bloqueado?"desbloquear":"bloquear")+'">'+(u.bloqueado?"Desbloquear":"Bloquear acceso")+'</button><button class="btn small danger" type="button" data-adm="eliminar">Eliminar cuenta</button>')+
+      '</div><div class="usitios" hidden style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px"></div></article>';}).join("");
 }
+$("adminList").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-adm]");if(!b)return;
+  const card=b.closest("[data-uid]"),uid=card.dataset.uid,act=b.dataset.adm,box=card.querySelector(".usitios");
+  if(act==="sitios"){
+    if(!box.hidden){box.hidden=true;b.textContent="Ver sus sitios";return;}
+    b.disabled=true;const r=await sb.rpc("admin_sitios",{p_user:uid});b.disabled=false;
+    if(r.error||!Array.isArray(r.data)){toast("No se han podido cargar sus sitios.");return;}
+    box.innerHTML=r.data.length?r.data.map(x=>'<div class="line"><b>'+esc(x.nombre)+"</b> · "+esc(CITIES[x.ciudad]?CITIES[x.ciudad].name:x.ciudad)+(x.barrio?" · "+esc(x.barrio):"")+" · "+(x.estado==="fui"?"visitado":"pendiente")+(x.precio!=null?" · ~"+x.precio+" €":"")+" · añadido "+esc(fdate(x.creado))+"</div>").join(""):'<div class="line">No tiene sitios.</div>';
+    box.hidden=false;b.textContent="Ocultar sus sitios";return;
+  }
+  if(act==="bloquear"||act==="desbloquear"){
+    b.disabled=true;const r=await sb.rpc("admin_bloquear",{p_user:uid,p_bloquear:act==="bloquear"});
+    if(r.error){b.disabled=false;toast("No se ha podido cambiar el acceso.");return;}
+    toast(act==="bloquear"?"Acceso bloqueado":"Acceso restablecido");openAdmin();return;
+  }
+  if(act==="eliminar"){
+    if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Se borrarán su cuenta y sus sitios. Pulsa otra vez";return;}
+    b.disabled=true;const r=await sb.rpc("admin_eliminar",{p_user:uid});
+    if(r.error){b.disabled=false;toast("No se ha podido eliminar la cuenta.");return;}
+    toast("Cuenta eliminada");openAdmin();
+  }
+});
 $("adminBtn").addEventListener("click",openAdmin);
 $("adminClose").addEventListener("click",()=>{$("adminSheet").hidden=true;});
 $("adminSheet").addEventListener("mousedown",e=>{if(e.target===$("adminSheet"))$("adminSheet").hidden=true;});
