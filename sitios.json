@@ -1,0 +1,125 @@
+{
+ "fecha": "2026-11-22",
+ "sitios": [
+  {
+   "nombre": "Bar Alonso",
+   "ciudad": "madrid",
+   "estado": "fui",
+   "direccion": "Calle de Gabriel Lobo, 18",
+   "barrio": "El Viso",
+   "estilos": [
+    "Tradicional",
+    "Marisco"
+   ],
+   "precio": 15,
+   "notas": "",
+   "lat": 40.4445,
+   "lng": -3.6795,
+   "aprox": true,
+   "tarde": false,
+   "cocina": false
+  },
+  {
+   "nombre": "Bar La Gloria",
+   "ciudad": "madrid",
+   "estado": "pendiente",
+   "direccion": "Calle Ramos Carrión, 5",
+   "barrio": "Prosperidad",
+   "estilos": [],
+   "precio": null,
+   "notas": "",
+   "lat": 40.444,
+   "lng": -3.6738,
+   "aprox": true,
+   "tarde": false,
+   "cocina": false
+  },
+  {
+   "nombre": "Bodegas Rosell",
+   "ciudad": "madrid",
+   "estado": "pendiente",
+   "direccion": "Calle del General Lacy, 14",
+   "barrio": "Palos de la Frontera",
+   "estilos": [
+    "Taberna castiza",
+    "Vinos"
+   ],
+   "precio": 28,
+   "notas": "",
+   "lat": 40.4049,
+   "lng": -3.6905,
+   "aprox": true,
+   "tarde": false,
+   "cocina": false
+  },
+  {
+   "nombre": "Cervecería Cervantes",
+   "ciudad": "madrid",
+   "estado": "fui",
+   "direccion": "Plaza de Jesús, 7",
+   "barrio": "Huertas · Las Letras",
+   "estilos": [
+    "Tradicional"
+   ],
+   "precio": 15,
+   "notas": "",
+   "lat": 40.4136,
+   "lng": -3.6958,
+   "aprox": true,
+   "tarde": true,
+   "cocina": false
+  },
+  {
+   "nombre": "La parrilla de Usera",
+   "ciudad": "madrid",
+   "estado": "fui",
+   "direccion": "Calle de Antonio López, 160",
+   "barrio": "Moscardó",
+   "estilos": [
+    "Ibéricos"
+   ],
+   "precio": 25,
+   "notas": "",
+   "lat": 40.3905,
+   "lng": -3.702,
+   "aprox": true,
+   "tarde": false,
+   "cocina": false
+  },
+  {
+   "nombre": "La Catapa",
+   "ciudad": "madrid",
+   "estado": "fui",
+   "direccion": "Calle de Menorca, 14",
+   "barrio": "Ibiza",
+   "estilos": [
+    "Tradicional",
+    "Vinos"
+   ],
+   "precio": 35,
+   "notas": "",
+   "lat": 40.4203,
+   "lng": -3.6752,
+   "aprox": true,
+   "tarde": false,
+   "cocina": false
+  },
+  {
+   "nombre": "Teitu",
+   "ciudad": "madrid",
+   "estado": "pendiente",
+   "direccion": "Calle del Capitán Haya, 20",
+   "barrio": "Cuatro Caminos",
+   "estilos": [
+    "Asturiana"
+   ],
+   "precio": 38,
+   "notas": "",
+   "lat": 40.4575,
+   "lng": -3.6935,
+   "aprox": true,
+   "tarde": false,
+   "cocina": false
+  }
+ ]
+}
