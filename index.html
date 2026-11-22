@@ -813,6 +813,20 @@ path.river{stroke:var(--river);fill:none}
 path.acc{fill:var(--accent);fill-opacity:.14;stroke:var(--accent);stroke-opacity:.5;stroke-width:1}
 .leaflet-control-attribution{font-size:10px;background:color-mix(in srgb,var(--surface) 80%,transparent)!important;color:var(--muted)}
 .leaflet-control-attribution a{color:var(--muted)}
+.listbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 0}
+.listbar .txt{flex:1 1 240px;color:var(--muted);font-size:14.5px}
+.listbar .txt b{color:var(--ink)}
+.chip small{opacity:.6;font-weight:500;margin-left:5px}
+.publicas{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0}
+a.chip{text-decoration:none;color:var(--ink);display:inline-block}
+.radios{display:flex;flex-direction:column;gap:8px}
+.radio{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface);cursor:pointer}
+.radio input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px}
+.radio b{display:block}.radio span{color:var(--muted);font-size:13.5px}
+.linkrow{display:flex;gap:8px}.linkrow input{flex:1;min-width:0;font-size:13px}
+.authtabs{margin-bottom:14px}
+.okmsg{color:var(--ink);font-weight:500;font-size:14.5px;margin:0 0 8px;padding:10px 12px;border:1px solid var(--accent);border-radius:12px;background:var(--surface)}
+.field input[type=email],.field input[type=password]{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px}
 .check{display:flex;align-items:center;gap:8px;font-size:15px}
 .check input{width:18px;height:18px;accent-color:var(--accent)}
 .me{display:block;width:18px;height:18px;border-radius:50%;background:var(--ink);border:3px solid var(--surface);box-shadow:0 0 0 6px color-mix(in srgb,var(--ink) 20%,transparent)}
@@ -832,10 +846,13 @@ path.acc{fill:var(--accent);fill-opacity:.14;stroke:var(--accent);stroke-opacity
       <a href="#madrid" id="tabMadrid">Madrid</a>
       <a href="#sevilla" id="tabSevilla">Sevilla</a>
     </nav>
-    <button class="btn" id="shareBtn" type="button">Compartir esta lista</button>
+    <button class="btn" id="shareBtn" type="button">Compartir</button>
+    <button class="btn" id="accountBtn" type="button">Entrar</button>
     <button class="btn primary" id="addBtn" type="button" hidden>Añadir sitio</button>
   </header>
     <p class="notice" id="notice" hidden></p>
+  <div class="listbar" id="listbar"></div>
+  <div class="publicas" id="publicas" hidden></div>
 
   <section class="filters" aria-label="Filtros">
     <div class="frow">
@@ -892,15 +909,16 @@ path.acc{fill:var(--accent);fill-opacity:.14;stroke:var(--accent);stroke-opacity
       <div class="field"><span class="lab">Estado</span>
         <div class="seg" id="inEstado"><button type="button" data-estado="fui">Ya he ido</button><button type="button" data-estado="pendiente">Pendiente</button></div></div>
     </div>
+    <div class="field" id="listaField"><label for="inLista">Lista</label><select id="inLista"></select></div>
     <div class="field"><label for="inDir">Dirección (opcional)</label><input type="text" id="inDir" autocomplete="off" maxlength="120" placeholder="Calle de Colón, 13"></div>
     <div class="field"><span class="lab">Ubicación en el mapa</span>
       <div class="locbox">
         <div class="st" id="locStatus">Sin ubicar</div>
         <div class="chips">
-          <button class="btn small" type="button" id="locAsk" hidden>Buscar otra vez con Claude</button>
+          <button class="btn small" type="button" id="locAsk">Buscar ubicación</button>
           <button class="btn small" type="button" id="locPick">Marcar en el mapa</button>
         </div>
-        <label class="hint" for="inCoords">O pega aquí unas coordenadas o un enlace largo de Google Maps:</label>
+        <label class="hint" for="inCoords">La ubicación se busca sola al escribir el nombre o la dirección. También puedes pegar coordenadas o un enlace largo de Google Maps:</label>
         <input type="text" id="inCoords" autocomplete="off" placeholder="40.4233, -3.7016">
         <div class="hint" id="locHint"></div>
       </div>
@@ -924,12 +942,50 @@ path.acc{fill:var(--accent);fill-opacity:.14;stroke:var(--accent);stroke-opacity
     </div>
   </form>
 </div>
+<div class="sheet" id="authSheet" hidden>
+  <form class="panel" id="authForm" novalidate role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <h2 id="authTitle">Entrar</h2>
+    <div class="seg authtabs" id="authTabs"><button type="button" data-m="entrar">Entrar</button><button type="button" data-m="alta">Crear cuenta</button></div>
+    <p class="okmsg" id="authOk" hidden></p>
+    <div class="field" id="fNombre"><label for="auNombre">Tu nombre</label><input type="text" id="auNombre" maxlength="60" autocomplete="name" placeholder="Como quieres que te vean en tus listas"></div>
+    <div class="field" id="fEmail"><label for="auEmail">Correo</label><input type="email" id="auEmail" autocomplete="email" inputmode="email" placeholder="tu@correo.com"></div>
+    <div class="field" id="fPass"><label for="auPass" id="auPassLab">Contraseña</label><input type="password" id="auPass" autocomplete="current-password" minlength="8"><span class="hint" id="auPassHint" style="font-size:13px;color:var(--muted)"></span></div>
+    <div id="cuentaBox" hidden><p class="line" id="cuentaTxt" style="margin:0 0 14px"></p></div>
+    <p class="err" id="authErr" role="alert"></p>
+    <div class="formacts">
+      <button class="linkbtn" type="button" id="authAlt"></button>
+      <div class="right"><button class="btn" type="button" id="authCancel">Cerrar</button><button class="btn primary" type="submit" id="authGo">Entrar</button></div>
+    </div>
+  </form>
+</div>
+
+<div class="sheet" id="listSheet" hidden>
+  <form class="panel" id="listForm" novalidate role="dialog" aria-modal="true" aria-labelledby="listTitle">
+    <h2 id="listTitle">Nueva lista</h2>
+    <div class="field"><label for="liNombre">Nombre de la lista</label><input type="text" id="liNombre" maxlength="60" autocomplete="off" placeholder="Tapas de siempre"></div>
+    <div class="field"><span class="lab">Quién puede verla</span>
+      <div class="radios" id="liVis">
+        <label class="radio"><input type="radio" name="vis" value="privada"><div><b>Privada</b><span>Solo la ves tú.</span></div></label>
+        <label class="radio"><input type="radio" name="vis" value="enlace"><div><b>Con enlace</b><span>La ve quien tenga el enlace, sin necesidad de cuenta.</span></div></label>
+        <label class="radio"><input type="radio" name="vis" value="publica"><div><b>Pública</b><span>Aparece en la web para cualquiera, con tu nombre.</span></div></label>
+      </div>
+    </div>
+    <div class="field" id="liLinkField" hidden><label for="liLink">Enlace para compartir</label>
+      <div class="linkrow"><input type="text" id="liLink" readonly><button class="btn small" type="button" id="liCopy">Copiar</button></div></div>
+    <p class="err" id="listErr" role="alert"></p>
+    <div class="formacts">
+      <button class="btn danger" type="button" id="liDel" hidden>Eliminar lista</button>
+      <div class="right"><button class="btn" type="button" id="liCancel">Cancelar</button><button class="btn primary" type="submit" id="liSave">Guardar</button></div>
+    </div>
+  </form>
+</div>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="geo-madrid.js"></script>
 <script>
 (function(){
@@ -996,44 +1052,138 @@ function clean(d,id){
   return {id,nombre:String(d.nombre||"").slice(0,80),ciudad:d.ciudad==="sevilla"?"sevilla":"madrid",estado:d.estado==="pendiente"?"pendiente":"fui",
     direccion:String(d.direccion||"").slice(0,120),barrio:String(d.barrio||"").slice(0,60),
     estilos:Array.isArray(d.estilos)?d.estilos.map(s=>String(s).slice(0,30)).filter(Boolean).slice(0,8):[],
-    precio:num(d.precio),notas:String(d.notas||"").slice(0,600),lat:num(d.lat),lng:num(d.lng),aprox:!!d.aprox,tarde:!!d.tarde,cocina:!!d.cocina,creado:String(d.creado||"")};
+    precio:num(d.precio),notas:String(d.notas||"").slice(0,600),lat:num(d.lat),lng:num(d.lng),aprox:!!d.aprox,tarde:!!d.tarde,cocina:!!d.cocina,creado:String(d.creado||""),lista_id:d.lista_id||null};
 }
 const body=p=>{const o=Object.assign({},p);delete o.id;delete o.ejemplo;return o;};
-function places(){return store.saved;}
+const SB_URL="https://txgwiklpgqgyakecpzhh.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4Z3dpa2xwZ3FneWFrZWNwemhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNjM3MDEsImV4cCI6MjExMDkzOTcwMX0.dnTggGcgUVSegXd3E2zZdDsTfpSUmWbk-7c9HFTFIj8";
+let sb=null;try{sb=window.supabase.createClient(SB_URL,SB_KEY);}catch(e){sb=null;}
+const SITE=location.origin+location.pathname;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const sharedId=(()=>{const v=new URLSearchParams(location.search).get("l");return v&&UUID.test(v)?v:null;})();
+const app={user:null,nombre:"",listas:[],sel:"todas",shared:null,publicas:{},muestra:[]};
+const VIS={privada:"privada",enlace:"con enlace",publica:"pública"};
+const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
+function places(){
+  if(store.mode==="compartida")return app.shared?app.shared.sitios:[];
+  if(store.mode==="mio")return app.sel==="todas"?store.saved:store.saved.filter(p=>p.lista_id===app.sel);
+  return app.muestra;
+}
 const showingExamples=()=>false;
+const listasCiudad=c=>app.listas.filter(l=>l.ciudad===c);
+const listaSel=()=>app.listas.find(l=>l.id===app.sel)||null;
 
-function localLoad(){try{const a=JSON.parse(localStorage.getItem(LSKEY)||"[]");store.saved=Array.isArray(a)?a.map(d=>clean(d,String(d.id))):[];}catch(e){store.saved=[];}}
-function localSave(){try{localStorage.setItem(LSKEY,JSON.stringify(store.saved));return true;}catch(e){return false;}}
-function goLocal(){ if(store.mode==="db")return;
-  const pub=window.SITIOS_PUBLICOS||{sitios:[]};
-  store.mode="publico";store.saved=(pub.sitios||[]).map((d,i)=>clean(d,"p"+i));
-  if(store.saved.length)notice("Vista pública de solo lectura. Lista actualizada el "+pub.fecha+".");
-  setReadOnly();renderAll(true);}
+async function loadMine(){
+  const uid=app.user.id;
+  const [l,s,pf]=await Promise.all([
+    sb.from("listas").select("*").eq("owner",uid).order("creado"),
+    sb.from("sitios").select("*").eq("owner",uid),
+    sb.from("perfiles").select("nombre").eq("id",uid).maybeSingle()]);
+  if(l.error||s.error)throw (l.error||s.error);
+  app.listas=l.data||[];app.nombre=(pf.data&&pf.data.nombre)||"";
+  const by=new Map(app.listas.map(x=>[x.id,x]));
+  store.saved=(s.data||[]).filter(r=>by.has(r.lista_id)).map(r=>clean(Object.assign({},r,{ciudad:by.get(r.lista_id).ciudad}),r.id));
+  if(app.sel!=="todas"&&!by.has(app.sel))app.sel="todas";
+}
+async function loadMuestra(){
+  if(app.muestra.length)return;
+  try{const r=await fetch("sitios.json",{cache:"no-cache"});if(!r.ok)throw 0;const j=await r.json();app.muestra=(j.sitios||[]).map((d,i)=>clean(d,"s"+i));}catch(e){app.muestra=[];}
+}
+async function loadShared(){
+  const r=await sb.rpc("lista_compartida",{p_id:sharedId});
+  if(r.error||!r.data)return false;
+  const d=r.data;
+  app.shared={id:d.id,nombre:d.nombre,autor:d.autor||"",ciudad:d.ciudad,visibilidad:d.visibilidad,
+    sitios:(d.sitios||[]).map(x=>clean(Object.assign({},x,{ciudad:d.ciudad,lista_id:d.id}),String(x.id)))};
+  return true;
+}
+async function loadPublicas(c){
+  if(!sb||app.publicas[c])return;
+  app.publicas[c]=[];
+  try{
+    const r=await sb.from("listas").select("id,nombre,owner").eq("visibilidad","publica").eq("ciudad",c).order("creado",{ascending:false}).limit(24);
+    if(r.error||!r.data||!r.data.length)return;
+    const owners=[...new Set(r.data.map(x=>x.owner))];
+    const pf=await sb.from("perfiles").select("id,nombre").in("id",owners);
+    const nm=new Map((pf.data||[]).map(x=>[x.id,x.nombre]));
+    app.publicas[c]=r.data.map(x=>({id:x.id,nombre:x.nombre,owner:x.owner,autor:nm.get(x.owner)||""}));
+  }catch(e){}
+  paintChrome();
+}
+async function ensureLista(ciudad){
+  const cur=listaSel();if(cur&&cur.ciudad===ciudad)return cur;
+  const first=listasCiudad(ciudad)[0];if(first)return first;
+  const r=await sb.from("listas").insert({ciudad,nombre:"Mis sitios de "+CITIES[ciudad].name}).select().single();
+  if(r.error)throw r.error;app.listas.push(r.data);return r.data;
+}
 async function savePlace(p){
-  const data=body(p);
-  if(store.mode==="db"){
-    const ref=p.id?store.col.doc(p.id):store.col.doc();
-    await ref.set(data);return ref.id;
-  }
-  const id=p.id||("l"+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
-  const i=store.saved.findIndex(x=>x.id===id);const rec=clean(data,id);
-  if(i>=0)store.saved[i]=rec;else store.saved.push(rec);
-  if(!localSave())throw {code:"local"};
-  renderAll();return id;
+  const row={lista_id:p.lista_id,nombre:p.nombre,estado:p.estado,direccion:p.direccion,barrio:p.barrio,estilos:p.estilos,precio:p.precio,notas:p.notas,lat:p.lat,lng:p.lng,aprox:p.aprox,tarde:p.tarde,cocina:p.cocina};
+  const r=p.id?await sb.from("sitios").update(row).eq("id",p.id).select().single():await sb.from("sitios").insert(row).select().single();
+  if(r.error)throw r.error;
+  const l=app.listas.find(x=>x.id===r.data.lista_id);
+  const rec=clean(Object.assign({},r.data,{ciudad:l?l.ciudad:p.ciudad}),r.data.id);
+  const i=store.saved.findIndex(x=>x.id===rec.id);if(i>=0)store.saved[i]=rec;else store.saved.push(rec);
+  paintChrome();renderAll();return rec.id;
 }
 async function removePlace(id){
-  if(store.mode==="db"){await store.col.doc(id).delete();return;}
-  store.saved=store.saved.filter(x=>x.id!==id);localSave();renderAll();
+  const r=await sb.from("sitios").delete().eq("id",id);if(r.error)throw r.error;
+  store.saved=store.saved.filter(x=>x.id!==id);paintChrome();renderAll();
+}
+let refreshing=null;
+async function refresh(session){
+  const uid=session&&session.user?session.user.id:null;
+  if(store.mode!=="loading"&&uid===(app.user?app.user.id:null))return;
+  app.user=uid?session.user:null;
+  try{
+    if(sharedId&&!app.shared&&store.mode==="loading"){
+      const ok=sb?await loadShared():false;
+      if(!ok)notice("Esta lista no existe o su dueño la tiene como privada.");
+    }
+    if(app.user)await loadMine();else{app.listas=[];store.saved=[];app.sel="todas";}
+    if(app.shared){store.mode="compartida";if(app.shared.ciudad!==city){city=app.shared.ciudad;location.hash="#"+city;}}
+    else if(app.user)store.mode="mio";
+    else{await loadMuestra();store.mode="muestra";}
+  }catch(e){
+    await loadMuestra();store.mode=app.shared?"compartida":"muestra";
+    notice("No se han podido cargar tus listas. Recarga la página para volver a intentarlo.");
+  }
+  store.canWrite=store.mode==="mio";
+  paintChrome();drawBase();renderAll(true);loadPublicas(city);
 }
 let sample=null;
 async function initStore(){
-  try{
-    const r=await fetch("sitios.json",{cache:"no-cache"});if(!r.ok)throw 0;
-    const j=await r.json();store.saved=(j.sitios||[]).map((d,i)=>clean(d,"s"+i));
-  }catch(e){store.saved=[];notice("No se ha podido cargar la lista de sitios. Recarga la página.");}
-  store.mode="publico";store.canWrite=false;applyParams();
-  drawBase();renderAll(true);
+  applyParams();
+  if(!sb){await loadMuestra();store.mode="muestra";store.canWrite=false;notice("No se ha podido conectar con el servicio de cuentas. Estás viendo la lista de muestra.");paintChrome();drawBase();renderAll(true);}
+  else{
+    sb.auth.onAuthStateChange((ev,session)=>{
+      if(ev==="PASSWORD_RECOVERY")setTimeout(()=>openAuth("nueva"),0);
+      if(ev==="TOKEN_REFRESHED"||ev==="USER_UPDATED")return;
+      setTimeout(()=>{refreshing=(refreshing||Promise.resolve()).then(()=>refresh(session));},0);
+    });
+    setTimeout(()=>{if(store.mode==="loading")refresh(null);},6000);
+  }
   try{if(navigator.permissions)navigator.permissions.query({name:"geolocation"}).then(p=>{if(p.state==="granted")startGps(false);}).catch(()=>{});}catch(_){}
+}
+function paintChrome(){
+  const m=store.mode,bar=$("listbar");
+  $("addBtn").hidden=m!=="mio";
+  $("accountBtn").textContent=app.user?(app.nombre||"Mi cuenta"):"Entrar";
+  $("accountBtn").hidden=!sb;
+  if(m==="mio"){
+    const ls=listasCiudad(city),cur=listaSel();
+    const n=id=>store.saved.filter(p=>p.lista_id===id).length;
+    bar.innerHTML='<button type="button" class="chip" data-lista="todas" aria-pressed="'+(app.sel==="todas"||!cur||cur.ciudad!==city)+'">Todas mis listas</button>'+
+      ls.map(l=>'<button type="button" class="chip" data-lista="'+esc(l.id)+'" aria-pressed="'+(app.sel===l.id)+'">'+esc(l.nombre)+'<small>'+n(l.id)+" · "+VIS[l.visibilidad]+"</small></button>").join("")+
+      '<button type="button" class="linkbtn" id="newListBtn">+ Nueva lista</button>'+
+      (cur&&cur.ciudad===city?'<button type="button" class="linkbtn" id="editListBtn">Ajustes de la lista</button>':"");
+  }else if(m==="compartida"&&app.shared){
+    bar.innerHTML='<span class="txt">Estás viendo <b>'+esc(app.shared.nombre)+"</b>"+(app.shared.autor?", una lista de <b>"+esc(app.shared.autor)+"</b>":"")+'. Es de solo lectura.</span><a class="btn small" href="'+esc(SITE)+'">'+(app.user?"Ir a mis listas":"Crear mi propia lista")+"</a>";
+  }else if(m==="muestra"){
+    bar.innerHTML='<span class="txt">Esta es una <b>lista de muestra</b>. Crea tu cuenta para guardar tus sitios, ordenarlos en listas por ciudad y compartirlas.</span>'+(sb?'<button type="button" class="btn small primary" id="ctaAlta">Crear cuenta</button>':"");
+  }else bar.innerHTML="";
+  const pubs=(app.publicas[city]||[]).filter(x=>!app.user||x.owner!==app.user.id).filter(x=>!app.shared||x.id!==app.shared.id),pb=$("publicas");
+  pb.hidden=!pubs.length||m==="loading";
+  if(pubs.length)pb.innerHTML='<span class="flabel" style="min-width:0">Listas públicas</span>'+pubs.map(x=>'<a class="chip" href="'+esc(SITE+"?l="+x.id+"#"+city)+'">'+esc(x.nombre)+(x.autor?"<small>de "+esc(x.autor)+"</small>":"")+"</a>").join("");
 }
 function setReadOnly(){store.canWrite=false;$("addBtn").hidden=true;renderList();}
 function notice(t){const n=$("notice");n.textContent=t;n.hidden=!t;}
@@ -1126,7 +1276,7 @@ map.on("zoomend",()=>{$("map").classList.toggle("hide-labels",map.getZoom()<13.5
 function renderSummary(){
   if(store.mode==="loading")return;
   const all=inCity(),v=visible(),fui=all.filter(p=>p.estado==="fui").length;
-  let t=CITIES[city].name+": "+all.length+(all.length===1?" sitio":" sitios")+" · "+fui+(fui===1?" visitado":" visitados")+" · "+(all.length-fui)+(all.length-fui===1?" pendiente":" pendientes");
+  let t=(store.mode==="compartida"&&app.shared?"":"")+CITIES[city].name+": "+all.length+(all.length===1?" sitio":" sitios")+" · "+fui+(fui===1?" visitado":" visitados")+" · "+(all.length-fui)+(all.length-fui===1?" pendiente":" pendientes");
   if(filtersOn())t+=" · mostrando "+v.length;
   if(showingExamples())t+=" (ejemplos)";
   $("summary").textContent=t;
@@ -1167,11 +1317,11 @@ function cardHtml(p,dist){
 }
 function renderList(){
   const el=$("list");
-  if(store.mode==="loading"){el.innerHTML='<div class="empty">Cargando tus sitios…</div>';return;}
+  if(store.mode==="loading"){el.innerHTML='<div class="empty">Cargando…</div>';return;}
   const v=visible();let html="";
   if(showingExamples())html+='<p class="notice" style="margin:0">Estos sitios son ejemplos para que veas cómo queda. Desaparecen en cuanto guardes el primero tuyo.</p>';
   if(!v.length){
-    html+='<div class="empty">'+(inCity().length?"Ningún sitio coincide con estos filtros.":"Todavía no has apuntado ningún sitio en "+CITIES[city].name+".")+"</div>";
+    html+='<div class="empty">'+(inCity().length?"Ningún sitio coincide con estos filtros.":(store.mode==="mio"?"Todavía no tienes sitios aquí en "+CITIES[city].name+". Pulsa «Añadir sitio» para empezar.":"No hay sitios en "+CITIES[city].name+" en esta lista."))+"</div>";
   }else if(near){
     const arr=v.map(p=>({p,d:p.lat!=null?distM(near.lat,near.lng,p.lat,p.lng):null})).sort((a,b)=>(a.d==null?1e12:a.d)-(b.d==null?1e12:b.d));
     html+='<section class="group"><h2>Cerca de ti<small>desde '+esc(near.barrio||"el punto marcado")+'</small></h2><div class="cards">'+arr.map(x=>cardHtml(x.p,x.d)).join("")+"</div></section>";
@@ -1185,7 +1335,7 @@ function renderList(){
   el.innerHTML=html;
 }
 function renderAll(fit){renderFilters();renderSummary();renderList();renderPins();if(fit)fitCity();}
-function setCity(c){city=c;F.barrio="";F.estilos.clear();clearNear();drawBase();renderAll(true);}
+function setCity(c){city=c;F.barrio="";F.estilos.clear();clearNear();const cur=listaSel();if(cur&&cur.ciudad!==c)app.sel="todas";paintChrome();drawBase();renderAll(true);loadPublicas(c);}
 function clearNear(){near=null;nearPicking=false;nearLayer.clearLayers();if(typeof drawGps==="function")drawGps();}
 
 /* ---------- interacción general ---------- */
@@ -1200,14 +1350,15 @@ $("nearBtn").addEventListener("click",()=>{
   if(near){clearNear();renderAll();return;}
   startGps(true);
 });
-function shareUrl(){
+function shareUrl(listId){
   const q=new URLSearchParams();
+  if(listId)q.set("l",listId);
   if(F.estado!=="todos")q.set("e",F.estado);
   if(F.precios.size)q.set("p",[...F.precios].map(x=>x.length).join(""));
   if(F.barrio)q.set("b",F.barrio);
   if(F.estilos.size)q.set("s",[...F.estilos].join("|"));
   if(F.tarde)q.set("t","1");if(F.cocina)q.set("k","1");
-  const qs=q.toString();return location.origin+location.pathname+(qs?"?"+qs:"")+"#"+city;
+  const qs=q.toString();return SITE+(qs?"?"+qs:"")+"#"+city;
 }
 function applyParams(){
   const q=new URLSearchParams(location.search);
@@ -1218,10 +1369,141 @@ function applyParams(){
   F.tarde=q.get("t")==="1";F.cocina=q.get("k")==="1";
 }
 $("shareBtn").addEventListener("click",async()=>{
-  const url=shareUrl(),zona=F.barrio?F.barrio+" ("+CITIES[city].name+")":CITIES[city].name;
-  const data={title:"Mapa de tapas",text:"Sitios de tapas en "+zona,url};
+  let listId=null,nombre="Mapa de tapas";
+  if(store.mode==="compartida"&&app.shared){listId=app.shared.id;nombre=app.shared.nombre;}
+  else if(store.mode==="mio"){
+    let cur=listaSel();const ls=listasCiudad(city);
+    if((!cur||cur.ciudad!==city)&&ls.length===1){cur=ls[0];app.sel=cur.id;paintChrome();renderAll();}
+    if(!cur||cur.ciudad!==city){toast(ls.length?"Elige arriba cuál de tus listas quieres compartir.":"Todavía no tienes ninguna lista en "+CITIES[city].name+".");return;}
+    if(cur.visibilidad==="privada"){openList(cur,"Esta lista es privada. Para compartirla, cámbiala a «Con enlace» o «Pública» y guarda.");return;}
+    listId=cur.id;nombre=cur.nombre;
+  }
+  const url=shareUrl(listId),zona=F.barrio?F.barrio+" ("+CITIES[city].name+")":CITIES[city].name;
+  const data={title:nombre,text:nombre+": sitios de tapas en "+zona,url};
   try{if(navigator.share){await navigator.share(data);return;}}catch(e){if(e&&e.name==="AbortError")return;}
   try{await navigator.clipboard.writeText(url);toast("Enlace copiado: "+zona);}catch(e){toast(url);}
+});
+
+/* ---------- listas ---------- */
+let listDraft=null,liDelArmed=false;
+function openList(l,hint){
+  listDraft=l?{id:l.id,nombre:l.nombre,ciudad:l.ciudad,visibilidad:l.visibilidad}:{id:null,nombre:"",ciudad:city,visibilidad:"privada"};
+  liDelArmed=false;$("listTitle").textContent=l?"Ajustes de la lista":"Nueva lista en "+CITIES[city].name;
+  $("liNombre").value=listDraft.nombre;$("listErr").textContent=hint||"";
+  $("liVis").querySelectorAll("input").forEach(i=>{i.checked=i.value===listDraft.visibilidad;});
+  $("liDel").hidden=!l;$("liDel").textContent="Eliminar lista";
+  paintListLink();$("listSheet").hidden=false;if(!l)$("liNombre").focus();
+}
+function paintListLink(){
+  const v=($("liVis").querySelector("input:checked")||{}).value||"privada";
+  const show=!!listDraft.id&&v!=="privada";$("liLinkField").hidden=!show;
+  if(show)$("liLink").value=SITE+"?l="+listDraft.id+"#"+listDraft.ciudad;
+}
+$("liVis").addEventListener("change",paintListLink);
+$("liCancel").addEventListener("click",()=>{$("listSheet").hidden=true;listDraft=null;});
+$("listSheet").addEventListener("mousedown",e=>{if(e.target===$("listSheet")){$("listSheet").hidden=true;listDraft=null;}});
+$("liCopy").addEventListener("click",async()=>{try{await navigator.clipboard.writeText($("liLink").value);toast("Enlace copiado");}catch(e){$("liLink").select();}});
+$("listForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const nombre=$("liNombre").value.trim(),vis=($("liVis").querySelector("input:checked")||{}).value||"privada";
+  if(!nombre){$("listErr").textContent="Ponle un nombre a la lista.";$("liNombre").focus();return;}
+  const btn=$("liSave");btn.disabled=true;$("listErr").textContent="";
+  try{
+    if(listDraft.id){
+      const before=app.listas.find(x=>x.id===listDraft.id),wasPrivate=before&&before.visibilidad==="privada";
+      const r=await sb.from("listas").update({nombre,visibilidad:vis}).eq("id",listDraft.id).select().single();if(r.error)throw r.error;
+      const i=app.listas.findIndex(x=>x.id===r.data.id);if(i>=0)app.listas[i]=r.data;
+      app.publicas={};loadPublicas(city);paintChrome();
+      if(wasPrivate&&vis!=="privada"){listDraft.visibilidad=vis;paintListLink();$("listErr").textContent="";toast("Guardado. Ya puedes copiar el enlace.");}
+      else{$("listSheet").hidden=true;listDraft=null;toast("Lista guardada");}
+    }else{
+      const r=await sb.from("listas").insert({ciudad:listDraft.ciudad,nombre,visibilidad:vis}).select().single();if(r.error)throw r.error;
+      app.listas.push(r.data);app.sel=r.data.id;app.publicas={};loadPublicas(city);
+      $("listSheet").hidden=true;listDraft=null;paintChrome();renderAll();toast("Lista creada: "+nombre);
+    }
+  }catch(err){$("listErr").textContent="No se ha podido guardar la lista. Inténtalo otra vez.";}
+  finally{btn.disabled=false;}
+});
+$("liDel").addEventListener("click",async()=>{
+  const n=store.saved.filter(p=>p.lista_id===listDraft.id).length;
+  if(!liDelArmed){liDelArmed=true;$("liDel").textContent=n?"Se borrarán también sus "+n+" sitios. Pulsa otra vez":"Pulsa otra vez para eliminar";return;}
+  $("liDel").disabled=true;
+  try{
+    const id=listDraft.id,r=await sb.from("listas").delete().eq("id",id);if(r.error)throw r.error;
+    app.listas=app.listas.filter(x=>x.id!==id);store.saved=store.saved.filter(p=>p.lista_id!==id);if(app.sel===id)app.sel="todas";
+    app.publicas={};loadPublicas(city);$("listSheet").hidden=true;listDraft=null;paintChrome();renderAll();toast("Lista eliminada");
+  }catch(err){$("listErr").textContent="No se ha podido eliminar la lista.";}
+  finally{$("liDel").disabled=false;}
+});
+$("listbar").addEventListener("click",e=>{
+  const c=e.target.closest("[data-lista]");
+  if(c){app.sel=c.dataset.lista;F.barrio="";F.estilos.clear();paintChrome();renderAll(true);return;}
+  if(e.target.closest("#newListBtn")){openList(null);return;}
+  if(e.target.closest("#editListBtn")){const cur=listaSel();if(cur)openList(cur);return;}
+  if(e.target.closest("#ctaAlta")){openAuth("alta");}
+});
+
+/* ---------- cuenta ---------- */
+let authMode="entrar";
+function openAuth(m){
+  authMode=m;$("authErr").textContent="";$("authOk").hidden=true;$("auPass").value="";
+  const T={entrar:["Entrar","Entrar"],alta:["Crear cuenta","Crear cuenta"],olvido:["Recuperar contraseña","Enviar correo"],nueva:["Nueva contraseña","Guardar contraseña"],cuenta:["Mi cuenta","Cerrar sesión"]}[m];
+  $("authTitle").textContent=T[0];$("authGo").textContent=T[1];$("authGo").hidden=false;
+  $("authTabs").hidden=!(m==="entrar"||m==="alta");
+  $("authTabs").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.m===m)));
+  $("fNombre").hidden=m!=="alta";$("fEmail").hidden=!(m==="entrar"||m==="alta"||m==="olvido");$("fPass").hidden=!(m==="entrar"||m==="alta"||m==="nueva");
+  $("auPass").autocomplete=m==="entrar"?"current-password":"new-password";
+  $("auPassLab").textContent=m==="nueva"?"Nueva contraseña":"Contraseña";
+  $("auPassHint").textContent=m==="entrar"?"":"Mínimo 8 caracteres.";
+  $("cuentaBox").hidden=m!=="cuenta";
+  if(m==="cuenta")$("cuentaTxt").textContent=(app.nombre?app.nombre+" · ":"")+(app.user?app.user.email:"");
+  $("authAlt").hidden=!(m==="entrar"||m==="olvido");
+  $("authAlt").textContent=m==="entrar"?"He olvidado mi contraseña":"Volver a entrar";
+  $("authSheet").hidden=false;
+  const f=m==="alta"?$("auNombre"):(m==="nueva"?$("auPass"):(m==="cuenta"?null:$("auEmail")));if(f)f.focus();
+}
+function closeAuth(){$("authSheet").hidden=true;}
+$("accountBtn").addEventListener("click",()=>openAuth(app.user?"cuenta":"entrar"));
+$("authCancel").addEventListener("click",closeAuth);
+$("authSheet").addEventListener("mousedown",e=>{if(e.target===$("authSheet"))closeAuth();});
+$("authTabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b)openAuth(b.dataset.m);});
+$("authAlt").addEventListener("click",()=>openAuth(authMode==="entrar"?"olvido":"entrar"));
+function authMsg(err){
+  const m=String((err&&err.message)||"").toLowerCase(),c=String((err&&err.code)||"");
+  if(m.includes("invalid login"))return "Correo o contraseña incorrectos.";
+  if(m.includes("not confirmed"))return "Falta confirmar tu correo. Abre el mensaje que te enviamos y pulsa el enlace.";
+  if(m.includes("already registered")||c==="user_already_exists")return "Ya hay una cuenta con ese correo. Entra con ella o recupera la contraseña.";
+  if(m.includes("rate limit")||c.includes("rate_limit"))return "Se han enviado demasiados correos seguidos. Espera unos minutos e inténtalo de nuevo.";
+  if(m.includes("password")&&(m.includes("least")||m.includes("weak")))return "La contraseña es demasiado corta o débil. Usa al menos 8 caracteres.";
+  if(m.includes("valid email")||m.includes("invalid email")||c==="email_address_invalid")return "Ese correo no parece válido.";
+  return "No se ha podido completar. Comprueba la conexión e inténtalo otra vez.";
+}
+$("authForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const email=$("auEmail").value.trim(),pass=$("auPass").value,nombre=$("auNombre").value.trim(),btn=$("authGo"),err=$("authErr"),ok=$("authOk");
+  err.textContent="";ok.hidden=true;
+  if(authMode==="cuenta"){btn.disabled=true;try{await sb.auth.signOut();closeAuth();toast("Sesión cerrada");}catch(x){err.textContent="No se ha podido cerrar la sesión.";}finally{btn.disabled=false;}return;}
+  if(authMode!=="nueva"&&!/^\S+@\S+\.\S+$/.test(email)){err.textContent="Escribe tu correo.";$("auEmail").focus();return;}
+  if(authMode==="alta"&&!nombre){err.textContent="Escribe tu nombre.";$("auNombre").focus();return;}
+  if((authMode==="alta"||authMode==="nueva")&&pass.length<8){err.textContent="La contraseña debe tener al menos 8 caracteres.";$("auPass").focus();return;}
+  if(authMode==="entrar"&&!pass){err.textContent="Escribe tu contraseña.";$("auPass").focus();return;}
+  btn.disabled=true;
+  try{
+    if(authMode==="entrar"){
+      const r=await sb.auth.signInWithPassword({email,password:pass});if(r.error)throw r.error;closeAuth();toast("Hola de nuevo");
+    }else if(authMode==="alta"){
+      const r=await sb.auth.signUp({email,password:pass,options:{data:{nombre},emailRedirectTo:SITE}});if(r.error)throw r.error;
+      if(r.data&&r.data.user&&r.data.user.identities&&r.data.user.identities.length===0)throw {code:"user_already_exists"};
+      if(r.data&&r.data.session){closeAuth();toast("Cuenta creada. Ya puedes añadir tus sitios.");}
+      else{ok.textContent="Te hemos enviado un correo a "+email+". Ábrelo y pulsa el enlace para activar tu cuenta.";ok.hidden=false;$("authGo").hidden=true;}
+    }else if(authMode==="olvido"){
+      const r=await sb.auth.resetPasswordForEmail(email,{redirectTo:SITE});if(r.error)throw r.error;
+      ok.textContent="Si hay una cuenta con ese correo, te llegará un mensaje con un enlace para poner una contraseña nueva.";ok.hidden=false;$("authGo").hidden=true;
+    }else if(authMode==="nueva"){
+      const r=await sb.auth.updateUser({password:pass});if(r.error)throw r.error;closeAuth();toast("Contraseña cambiada");
+    }
+  }catch(x){err.textContent=authMsg(x);}
+  finally{btn.disabled=false;$("auPass").value="";}
 });
 const smooth=()=>window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth";
 document.addEventListener("click",e=>{
@@ -1235,15 +1517,14 @@ document.addEventListener("click",e=>{
 });
 function saveFailed(e){
   const code=e&&e.code;
-  if(code==="quota_exceeded")toast("No cabe más: borra algún sitio antes de añadir otro.");
-  else if(code==="invalid_argument"||code==="revoked"){toast("No tienes permiso para cambiar este mapa.");setReadOnly();}
+  if(code==="42501"||code==="PGRST301")toast("Tu sesión ha caducado. Vuelve a entrar.");
   else toast("No se ha podido guardar. Inténtalo otra vez.");
 }
 
 /* ---------- ficha ---------- */
 let draft=null,delArmed=false;
 function openForm(p){
-  draft=p?Object.assign({},p,{estilos:p.estilos.slice()}):{id:null,nombre:"",ciudad:city,estado:"fui",direccion:"",barrio:"",estilos:[],precio:null,notas:"",lat:null,lng:null,aprox:false,tarde:false,cocina:false,creado:""};
+  draft=p?Object.assign({},p,{estilos:p.estilos.slice()}):{id:null,nombre:"",ciudad:city,estado:"fui",direccion:"",barrio:"",estilos:[],precio:null,notas:"",lat:null,lng:null,aprox:false,tarde:false,cocina:false,creado:"",lista_id:(listaSel()&&listaSel().ciudad===city)?listaSel().id:null};
   delArmed=false;$("formErr").textContent="";$("locHint").textContent="";$("inCoords").value="";
   $("formTitle").textContent=draft.id?"Editar sitio":"Añadir sitio";
   $("inNombre").value=draft.nombre;$("inDir").value=draft.direccion;$("inPrecio").value=draft.precio==null?"":draft.precio;$("inNotas").value=draft.notas;$("inEstiloNuevo").value="";$("inTarde").checked=!!draft.tarde;$("inCocina").checked=!!draft.cocina;lastTried="";
@@ -1253,11 +1534,13 @@ function openForm(p){
 function readForm(){
   draft.nombre=$("inNombre").value.trim();draft.direccion=$("inDir").value.trim();draft.notas=$("inNotas").value.trim();
   const v=$("inPrecio").value.trim(),n=Number(v);draft.precio=v!==""&&isFinite(n)&&n>=0?Math.round(n):null;
-  draft.barrio=$("inBarrio").value;draft.tarde=$("inTarde").checked;draft.cocina=$("inCocina").checked;
+  draft.barrio=$("inBarrio").value;draft.tarde=$("inTarde").checked;draft.cocina=$("inCocina").checked;draft.lista_id=$("inLista").value||null;
 }
 function paintForm(){
   $("inCiudad").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.ciudad===draft.ciudad)));
   $("inEstado").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.estado===draft.estado)));
+  const ls=listasCiudad(draft.ciudad);if(!ls.some(l=>l.id===draft.lista_id))draft.lista_id=ls.length?ls[0].id:null;
+  $("inLista").innerHTML=ls.length?ls.map(l=>'<option value="'+esc(l.id)+'"'+(l.id===draft.lista_id?" selected":"")+">"+esc(l.nombre)+"</option>").join(""):'<option value="">Se creará «Mis sitios de '+esc(CITIES[draft.ciudad].name)+'»</option>';
   const names=barrioNames(draft.ciudad);if(draft.barrio&&!names.includes(draft.barrio))names.unshift(draft.barrio);
   $("inBarrio").innerHTML='<option value="">Sin barrio</option>'+names.map(b=>'<option value="'+esc(b)+'"'+(b===draft.barrio?" selected":"")+">"+esc(b)+"</option>").join("");
   const known=new Set(ESTILOS_BASE);places().forEach(p=>{if(!p.ejemplo)p.estilos.forEach(s=>known.add(s));});draft.estilos.forEach(s=>known.add(s));
@@ -1274,8 +1557,8 @@ function closeForm(){$("sheet").hidden=true;draft=null;}
 $("addBtn").addEventListener("click",()=>openForm(null));
 $("cancelBtn").addEventListener("click",closeForm);
 $("sheet").addEventListener("mousedown",e=>{if(e.target===$("sheet"))closeForm();});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden)closeForm();});
-$("inCiudad").addEventListener("click",e=>{const b=e.target.closest("button");if(!b||b.dataset.ciudad===draft.ciudad)return;readForm();draft.ciudad=b.dataset.ciudad;draft.barrio="";draft.lat=draft.lng=null;draft.aprox=false;paintForm();});
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(!$("sheet").hidden)closeForm();else if(!$("authSheet").hidden)closeAuth();else if(!$("listSheet").hidden){$("listSheet").hidden=true;listDraft=null;}});
+$("inCiudad").addEventListener("click",e=>{const b=e.target.closest("button");if(!b||b.dataset.ciudad===draft.ciudad)return;readForm();draft.ciudad=b.dataset.ciudad;draft.lista_id=null;draft.barrio="";draft.lat=draft.lng=null;draft.aprox=false;paintForm();});
 $("inEstado").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;readForm();draft.estado=b.dataset.estado;paintForm();});
 $("inEstilos").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;readForm();const s=b.dataset.estilo,i=draft.estilos.indexOf(s);i>=0?draft.estilos.splice(i,1):draft.estilos.push(s);paintForm();});
 function addEstilo(){const el=$("inEstiloNuevo");let s=el.value.replace(/,/g," ").trim();if(!s)return;s=s.charAt(0).toUpperCase()+s.slice(1);readForm();
@@ -1299,37 +1582,35 @@ function matchBarrio(c,t){const n=norm(t);if(!n)return "";const names=barrioName
   return names.find(x=>norm(x)===n)||names.find(x=>norm(x).split(" · ").includes(n))||names.find(x=>norm(x).includes(n)||n.includes(norm(x)))||"";}
 function locate(auto){
   if(locating)return locating;
-  if(!draft||!sample||sampleOff)return Promise.resolve();
+  if(!draft)return Promise.resolve();
   readForm();
   if(draft.nombre.length<3){if(!auto){$("locHint").textContent="Escribe primero el nombre del sitio.";$("inNombre").focus();}return Promise.resolve();}
   const key=draft.ciudad+"|"+draft.nombre+"|"+draft.direccion;
   if(auto&&key===lastTried)return Promise.resolve();
   lastTried=key;
-  const btn=$("locAsk"),c=CITIES[draft.ciudad],mine=draft;btn.disabled=true;$("locHint").textContent="Buscando dónde está "+draft.nombre+"…";
+  const btn=$("locAsk"),c=CITIES[draft.ciudad],mine=draft,box=c.box,vb=[box[0][1],box[1][0],box[1][1],box[0][0]].join(",");
+  btn.disabled=true;$("locHint").textContent="Buscando dónde está "+draft.nombre+"…";
+  const q=async txt=>{
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&accept-language=es&countrycodes=es&bounded=1&viewbox="+vb+"&q="+encodeURIComponent(txt));
+    if(!r.ok)throw 0;const j=await r.json();return j&&j[0]?j[0]:null;};
   locating=(async()=>{
   try{
-    const r=await sample.json("Necesito situar en un mapa un bar o restaurante de "+c.name+" (España).\nNombre: "+draft.nombre+"\nDirección que tengo: "+(draft.direccion||"(ninguna)")+
-      '\n\nResponde solo con un objeto JSON con esta forma: {"lat": número, "lng": número, "direccion": "calle y número", "barrio": "nombre del barrio", "seguro": true o false}. Coordenadas decimales WGS84. "seguro" es true solo si conoces bien el sitio o la dirección exacta. Si no sabes las coordenadas pero sí el barrio (por ejemplo, porque el nombre lo dice), pon lat y lng a null y rellena "barrio". Si no sabes nada, responde {"lat": null, "lng": null, "direccion": "", "barrio": "", "seguro": false}. No inventes.\nEjemplo: {"lat": 40.4177, "lng": -3.7048, "direccion": "Calle de Tetuán, 12", "barrio": "Sol", "seguro": true}');
+    let hit=null,porDireccion=false;
+    if(draft.direccion){hit=await q(draft.direccion+", "+c.name);porDireccion=!!hit;}
+    if(!hit)hit=await q(draft.nombre+", "+c.name);
     if(draft!==mine)return;
-    const lat=r&&Number(r.lat),lng=r&&Number(r.lng);
     readForm();
-    if(!draft.direccion&&r&&typeof r.direccion==="string"&&r.direccion){draft.direccion=r.direccion.slice(0,120);$("inDir").value=draft.direccion;}
     if(draft.lat!=null&&!draft.aprox){$("locHint").textContent="";}
-    else if(r&&r.lat!=null&&isFinite(lat)&&isFinite(lng)&&inBox(draft.ciudad,lat,lng)){
-      setLocation(lat,lng,true);
-      $("locHint").textContent="Claude lo sitúa en "+(draft.barrio||c.name)+(r.seguro?"":", sin mucha seguridad")+". Es una ubicación aproximada: compruébala con «Ajustar en el mapa».";
-    }else{
-      const bn=r?matchBarrio(draft.ciudad,r.barrio):"",ctr=bn&&barrioCenter(draft.ciudad,bn);
-      if(ctr){draft.barrio=bn;draft.lat=ctr[0];draft.lng=ctr[1];draft.aprox=true;$("locHint").textContent="Claude solo sabe el barrio ("+bn+"), así que el pin queda en su centro. Ajústalo en el mapa si quieres.";}
-      else $("locHint").textContent="Claude no sabe situar este sitio. Añade la dirección y vuelve a buscar, o márcalo en el mapa.";
-    }
+    else if(hit&&isFinite(Number(hit.lat))&&isFinite(Number(hit.lon))&&inBox(draft.ciudad,Number(hit.lat),Number(hit.lon))){
+      setLocation(Number(hit.lat),Number(hit.lon),false);
+      const a=hit.address||{};
+      if(!draft.direccion&&a.road){draft.direccion=(a.road+(a.house_number?", "+a.house_number:"")).slice(0,120);$("inDir").value=draft.direccion;}
+      $("locHint").textContent="Ubicado"+(draft.barrio?" en "+draft.barrio:"")+(porDireccion?" por la dirección.":". Si no es el sitio correcto, añade la dirección o ajústalo en el mapa.");
+    }else $("locHint").textContent="No lo encuentro por el nombre. Escribe la dirección y se ubicará solo, o márcalo en el mapa.";
     paintForm();
   }catch(e){
     if(draft!==mine)return;
-    const code=e&&e.code;
-    if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(code)){sampleOff=true;btn.hidden=true;$("locHint").textContent="La búsqueda con Claude no está disponible. Márcalo en el mapa o elige el barrio.";}
-    else if(code==="rate_limited")$("locHint").textContent="Demasiadas búsquedas seguidas. Prueba dentro de un rato o márcalo en el mapa.";
-    else $("locHint").textContent="La búsqueda ha fallado. Puedes volver a intentarlo o marcarlo en el mapa.";
+    $("locHint").textContent="La búsqueda ha fallado. Puedes volver a intentarlo o marcarlo en el mapa.";
   }finally{btn.disabled=false;}
   })().finally(()=>{locating=null;});
   return locating;
@@ -1407,14 +1688,17 @@ $("form").addEventListener("submit",async e=>{
   e.preventDefault();addEstilo();readForm();
   if(!draft.nombre){$("formErr").textContent="Falta el nombre del sitio.";$("inNombre").focus();return;}
   const btn=$("saveBtn");
-  if(draft.lat==null&&sample&&!sampleOff){btn.disabled=true;btn.textContent="Buscando ubicación…";await (locating||locate(true));btn.textContent="Guardar";btn.disabled=false;if(!draft)return;readForm();}
+  if(draft.lat==null){btn.disabled=true;btn.textContent="Buscando ubicación…";await (locating||locate(true));btn.textContent="Guardar";btn.disabled=false;if(!draft)return;readForm();}
   if(draft.lat==null&&draft.barrio){const c=barrioCenter(draft.ciudad,draft.barrio);if(c){draft.lat=c[0];draft.lng=c[1];draft.aprox=true;}}
   if(!draft.creado)draft.creado=new Date().toISOString();
   btn.disabled=true;$("formErr").textContent="";
-  const p=clean(draft,draft.id),isNew=!draft.id;
+  const isNew=!draft.id;
   try{
+    if(!draft.lista_id)draft.lista_id=(await ensureLista(draft.ciudad)).id;
+    const p=clean(draft,draft.id);
     await savePlace(p);
     if(p.ciudad!==city){location.hash="#"+p.ciudad;setCity(p.ciudad);}
+    if(app.sel!=="todas"&&app.sel!==p.lista_id){app.sel=p.lista_id;paintChrome();renderAll();}
     closeForm();toast(isNew?"Guardado: "+p.nombre:"Cambios guardados");
   }catch(err){saveFailed(err);$("formErr").textContent="No se ha guardado.";}
   finally{btn.disabled=false;}
@@ -1426,7 +1710,7 @@ $("delBtn").addEventListener("click",async()=>{
 });
 
 /* ---------- arranque ---------- */
-drawBase();map.setView(CITIES[city].center,CITIES[city].zoom);renderAll();
+drawBase();map.setView(CITIES[city].center,CITIES[city].zoom);paintChrome();renderAll();
 initStore();
 })();
 </script>
