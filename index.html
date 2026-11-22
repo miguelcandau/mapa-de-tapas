@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mapa de tapas</title>
+<title>Tapómetro</title>
 <meta name="description" content="Sitios de tapas en Madrid y Sevilla: los que ya conocemos y los pendientes, en el mapa y por barrios.">
-<meta property="og:title" content="Mapa de tapas">
+<meta property="og:title" content="Tapómetro">
 <meta property="og:description" content="Sitios de tapas en Madrid y Sevilla, en el mapa y por barrios.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#D9601F">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23D9601F'/%3E%3Cpath d='M32 12c-9 0-16 7-16 16 0 12 16 24 16 24s16-12 16-24c0-9-7-16-16-16z' fill='%23FFF4E8'/%3E%3Ccircle cx='32' cy='28' r='6' fill='%23D9601F'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23D9601F'/%3E%3Cpath%20d='M13%2042a19%2019%200%200%201%2038%200'%20fill='none'%20stroke='%23FFF4E8'%20stroke-width='6'%20stroke-linecap='round'/%3E%3Cpath%20d='M32%2042L44%2025'%20stroke='%23FFF4E8'%20stroke-width='5'%20stroke-linecap='round'/%3E%3Ccircle%20cx='32'%20cy='42'%20r='5.5'%20fill='%23FFF4E8'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -698,6 +698,9 @@ button{cursor:pointer}
 .brand{flex:1 1 220px;min-width:0}
 h1{font-family:var(--display);font-weight:400;font-size:clamp(46px,12vw,72px);line-height:.9;letter-spacing:-.01em;margin:0;color:#FFF4E8;text-wrap:balance}
 h1 span{font-style:italic}
+h1.wordmark{display:flex;align-items:center;gap:.22em;font-size:clamp(34px,9.5vw,64px);white-space:nowrap}
+h1.wordmark b{font-weight:inherit}
+h1.wordmark .logo{width:.95em;height:.95em;flex:none;border-radius:.2em}
 .summary{margin:10px 0 0;color:#FFF4E8;font-weight:500;font-variant-numeric:tabular-nums}
 .azulejo{display:none}
 
@@ -847,7 +850,7 @@ a.chip{text-decoration:none;color:var(--ink);display:inline-block}
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <h1>De <span>tapas</span></h1>
+      <h1 class="wordmark"><svg class='logo' aria-hidden='true' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='#FFF4E8'/><path d='M13 42a19 19 0 0 1 38 0' fill='none' stroke='#D9601F' stroke-width='6' stroke-linecap='round'/><path d='M32 42L44 25' stroke='#D9601F' stroke-width='5' stroke-linecap='round'/><circle cx='32' cy='42' r='5.5' fill='#D9601F'/></svg><b>Tap<span>ómetro</span></b></h1>
       <p class="summary" id="summary">Cargando tus sitios…</p>
     </div>
     <nav class="seg cities" aria-label="Ciudad">
@@ -1423,7 +1426,7 @@ function applyParams(){
   F.tarde=q.get("t")==="1";F.cocina=q.get("k")==="1";
 }
 $("shareBtn").addEventListener("click",async()=>{
-  let listId=null,nombre="Mapa de tapas";
+  let listId=null,nombre="Tapómetro";
   if(store.mode==="compartida"&&app.shared){listId=app.shared.id;nombre=app.shared.nombre;}
   else if(store.mode==="mio"){
     const cur=listasCiudad(city)[0];

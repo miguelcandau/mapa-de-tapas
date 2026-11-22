@@ -1,4 +1,4 @@
-# Mapa de tapas
+# Tapómetro
 
 Sitios de tapas en Madrid y Sevilla: visitados y pendientes, en el mapa y por barrios.
 
